@@ -1,0 +1,127 @@
+These instructions were tested on the computer redoubt.
+
++ Installation
+
+You can skip the installation step if you want to use the build already in
+/home/ambrad/basic3d/work. However, here are the details to build dc3dm and
+fdra2c. They will be useful if you want to modify fdra2c.
+
+Make a work directory. Call this directory "work", say. cd into it and run the
+following ($ denotes the Unix command line, and >> denotes the Matlab command
+line):
+    $ cp /home/ambrad/basic3d/supplies/*.zip .
+
+unzip each of these files. For convenience,
+    $ mv dc3dm_v0.3 dc3dm
+    $ mv fdra2c0.5/fdra2c .; rmdir fdra2c0.5
+You can remove the .zip files. Now your $work directory should look like this:
+    ambrad@redoubt:~/basic3d/work$ ls -ltrh
+    total 8.0K
+    drwxr-xr-x  8 ambrad users 4.0K Feb  6 17:04 fdra2c
+    drwxr-xr-x 12 ambrad users 4.0K Feb  6 17:16 dc3dm
+
+Now we need to build the programs. First,
+    $ cd dc3dm
+Edit Makefile. You need to provide BLASLIB and LAPACKLIB. You can use these
+lines on our network:
+    fortranint = 4
+    BLASLIB = /home/ambrad/dl/lapack-3.4.2/libblas.a
+    LAPACKLIB = /home/ambrad/dl/lapack-3.4.2/liblapack.a
+Then
+    $ make
+To make sure all is well, when it is done, run
+    $ ./bin/dc3dm
+You should see help text.
+
+Second,
+    $ cd ../fdra2c
+Unlike dc3dm, fdra2c is not a released code for others to use, so it has never
+been packaged well. It's also missing many features. You should feel free to
+modify it as you wish. The physics is in OdeFn.cpp, and the basic setup stuff is
+in Fdra.cpp and Fdra_pri.hpp.
+  I've arranged so that the zip file can be used to build and run on
+our network. Run
+    $ mkdir bin; make mode=p opt=-O3
+To test the build, run
+    $ mpirun -np 3 ./bin/fdra
+You should see this error output (which confirms that the program is running):
+    ./bin/fdra key-value-file
+    ./bin/fdra key-value-file
+    ./bin/fdra key-value-file
+    --------------------------------------------------------------------------
+    mpirun noticed that the job aborted, but has no info as to the process
+    that caused that situation.
+    --------------------------------------------------------------------------
+There is also a utility program we'll need:
+    $ make mode=p opt=-O3 add_bc
+Test that it is installed:
+    $ ./bin/add_bc_to_fdra_kvf
+
+The final step is to make some mex files. This can be tricky because of
+dependencies. On redoubt, I found that this works:
+    $ cd dc3dm/matlab
+    $ /software/matlab_r2013b/bin/matlab
+    >> make
+To test that the mex files indeed are linking, run these two commands and make
+sure you see this output:
+    >> hmmvp
+    Error using hmmvp
+    Type 'help hmmvp' for help. 
+    >> dc3dm_mex
+    Error using dc3dm_mex
+    [...] = dc3dm_mex('cmd', ...) 
+
++ Doing some work
+
+Next, let's look at a simulation. Copy supplies/b3d.m into your work
+directory. b3d.m goes through the steps of making a circular crack
+simulation. It's extracted from /home/ambrad/moment_scaling/mvd.m.
+
+At the top of b3d.m, modify the paths in function env() to make sense for
+you. Make a scratch directory on redoubt, following the example in env().
+
+Run
+    >> b3d('addpaths')
+    >> addpath /home/ambrad/lib  % a bunch of little utils fdra2c.m will use
+    >> s = b3d('cl_setup')
+The third line will run a bunch of setup stuff. This stuff is fairly
+straightforward but detailed. I recommend reading through the cl_* functions in
+b3d.m, following cl_setup's call tree, to understand all the setup steps. Also
+read through the output from
+    $ ./dc3dm/bin/dc3dm help mesh
+    $ ./dc3dm/bin/dc3dm help build
+    $ ./dc3dm/bin/dc3dm help compress
+to understand what cl_write_[mesh|build|compress]_kvf() are doing. ("kvf" means
+"key-value file". Key-value files contain simulation parameters for dc3dm and
+fdra2c.)
+
+Next, write a script with the lines to run:
+    >> b3d('cl_write_script', s, 'test.script')
+Back on the Unix command line, run
+    $ bash test.script
+This will start a sequence of programs: construction of the dislocation-traction
+operator, and then the crack simulation itself.
+
+Once the simulation is done, you can start looking at output. This gets
+complicated. fdra2c/matlab/fdra2c.m contains some basic analysis tools. Here is
+one:
+    >> q = fdra2c('qload', s.fs{1}.cf, 10); % Read in some data.
+    >> fdra2c('vi_Start', q);
+This should bring up a window that lets you click through simulation
+snapshots.
+
+Look through fdra2c/matlab/fdra2c.m to learn how to read and format the
+simulation data. Read the 'qload' function and the functions it calls
+particularly closely to see how the data are formatted.
+
+Ultimately, you will want to use qload or even a version you write yourself to
+write your own data analysis routines. qload is a convenient wrapper built on
+the fundamental I/O tool SaveStreamData. Type
+    >> help SaveStreamData
+to learn more about this I/O tool. You can write your own data reading code
+using this function as the lowest-level I/O interface to the simulation output
+files.
+
+As an example of more advanced simulation work, see
+    /home/ambrad/moment_scaling/mvd.m
+Look for 'qload' to find simulation data analysis examples.

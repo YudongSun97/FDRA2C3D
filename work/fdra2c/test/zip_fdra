@@ -1,0 +1,22 @@
+dr1=fdra2c0.5;
+mkdir $dr1;
+dr=$dr1/fdra2c;
+mkdir $dr;
+mkdir $dr/src;
+mkdir $dr/include;
+mkdir $dr/hmmvp;
+mkdir $dr/test/
+mkdir $dr/matlab/
+mkdir $dr/util/
+mkdir $dr/hmmvp/
+
+cp Makefile $dr/;
+cp zip_fdra *.m *.?pp $dr/test;
+cp src/*.?pp $dr/src/;
+cp include/*.?pp $dr/include/;
+cp matlab/*.m $dr/matlab/;
+cp -r ~/code/hmmvp/hmmvp1.0/* $dr/;
+rm -rf $dr/hmmvp/util/;
+cp -r ~/code/util/util0.0/* $dr/;
+
+zip -r $dr1.zip $dr1/*

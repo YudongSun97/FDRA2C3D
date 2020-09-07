@@ -1,0 +1,58 @@
+# Usage:
+#   make mode=p opt=-O
+#     parallelization by MPI
+#   make mode=s opt=-O
+#     serial with no MPI dependencies
+# Change these lines to fit your system.
+BLASLIB = /home/ambrad/dl/lapack-3.2.1/libblas.a
+LAPACKLIB = /home/ambrad/dl/lapack-3.2.1/liblapack.a
+CPP = g++
+MPICPP = mpic++
+FORTRAN = gfortran
+# The rest should not have to be changed.
+
+UTILLIB = ../util/lib/libutil.a
+UTILINC = -I ../util/include
+
+INCLUDE = -I src -I include -I .. -I . $(UTILINC)
+LIBS = $(LAPACKLIB) $(BLASLIB) $(UTILLIB) -lgfortran
+LIBDIRS =
+OPTFLAGS = $(opt)
+CPPFLAGS = $(OPTFLAGS) -Wall -DANALYZE_CODE
+FFLAGS = $(OPTFLAGS) -Wall
+LDFLAGS = $(OPTFLAGS)
+
+.SUFFIXES:
+.SUFFIXES: .cpp .f .o
+
+CCPPSRCS = src/Hd.cpp src/Compress.cpp src/Hmat.cpp src/HmatIo.cpp	\
+	src/Elastostatics.cpp
+CFSRCS = external/dc3omp.f
+
+COBJECTS = $(patsubst %.cpp,%.o,$(CCPPSRCS)) $(patsubst %.f,%.o,$(CFSRCS))
+
+%.o : %.cpp
+ifeq ($(mode),p)
+	$(MPICPP) -DUTIL_MPI $(CPPFLAGS) $(INCLUDE) -c $< -o $@
+else
+	$(CPP) $(CPPFLAGS) $(INCLUDE) -c $< -o $@
+endif
+
+%.o : %.f
+	$(FORTRAN) $(FFLAGS) -c $< -o $@
+
+all : libhmmvp src/hmmvpCompress.o
+ifeq ($(mode),s)
+	$(CPP) $(LDFLAGS) $(LIBFLAGS) $(LIBDIRS) src/hmmvpCompress.o lib/libhmmvp.a $(LIBS) -o ./bin/hmmvpCompress
+else
+	$(MPICPP) $(LDFLAGS) $(LIBFLAGS) -DUTIL_MPI $(LIBDIRS) src/hmmvpCompress.o lib/libhmmvp.a $(LIBS) -o ./bin/hmmvpCompress
+endif
+
+clang :
+	clang -fsyntax-only $(INCLUDE) src/*.cpp
+
+libhmmvp : $(COBJECTS) $(FOBJECTS)
+	ar rucs lib/libhmmvp.a $(COBJECTS) $(FOBJECTS)
+
+clean:
+	rm -f src/*.o external/*.o lib/libhmmvp.a bin/hmmvpCompress
