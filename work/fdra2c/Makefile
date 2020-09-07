@@ -7,21 +7,25 @@
 HMMVPINC = -I /home/camcat/code/ambrad
 HMMVPLIB = /home/camcat/code/hmmvp/lib/libhmmvp_$(mode).a
 UTILINC = -I /home/camcat/code/ambrad
-UTILLIB = /home/camcat/code/lib/libutil_$(mode).a
-BLASLIB = /home/camcat/code/lib/lapack-3.2.1/libblas.a
+UTILLIB = /home/camcat/code/ambrad/util/lib/libutil_$(mode).a
+BLASLIB = /usr/lib/x86_64-linux-gnu/libblas.so.3 #/home/camcat/code/lib/lapack-3.2.1/libblas.a
 
 CPP = g++
 MPICPP = mpic++
 # The rest should not have to be changed.
 
 CPPSRCS = src/main.cpp src/OdeFn.cpp src/Ode.cpp src/StreamDataFile.cpp	\
-src/Fdra.cpp src/HmatrixStressFn.cpp
+src/Fdra.cpp src/HmatrixStressFn.cpp #\
+/home/camcat/code/ambrad/util/src/ValueSetter.cpp \
+/home/camcat/code/ambrad/util/src/KeyValueFile.cpp \
+/home/camcat/code/ambrad/util/src/Mpi.cpp \
+/home/camcat/code/ambrad/util/src/CodeAnalysis.cpp \
 
 INCLUDE = -I src -I include $(HMMVPINC) $(UTILINC)
 LIBS = $(HMMVPLIB) $(UTILLIB) $(BLASLIB) -lgfortran -lgomp
 LIBDIRS =
 OPTFLAGS = $(opt)
-CPPFLAGS = $(OPTFLAGS) -Wall #-DANALYZE_CODE
+CPPFLAGS = -no-pie $(OPTFLAGS) #-DANALYZE_CODE
 LDFLAGS = $(OPTFLAGS)
 
 .SUFFIXES:
