@@ -1,4 +1,0 @@
-time /home/ambrad/basic3d/work/dc3dm/bin/dc3dm /scratch/ambrad/b3d/cl3_ar1.0dw12_rf1tol-6_c.kvf;
-/home/ambrad/basic3d/work/fdra2c/bin/add_bc_to_fdra_kvf /scratch/ambrad/b3d/cl3_mnear1.0dw12_rf1_f.kvf;
-time mpirun -np 8 /home/ambrad/basic3d/work/fdra2c/bin/fdra /scratch/ambrad/b3d/cl3_mnear1.0dw12_rf1_f.kvf;
-
