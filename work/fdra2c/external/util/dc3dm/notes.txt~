@@ -1,0 +1,29 @@
+i think i want the release package to look like this:
+    src:
+      dc3dm.hpp      | Or perhaps I'll have everything here.
+      dc3dm_inl.hpp  |
+      dc3dm.cpp      |
+      dc3dmMesh.cpp
+      dc3dmBuild.cpp
+      dc3dmCompress.cpp
+      MexUtil.?pp
+      dc3dm_mex.cpp
+      hm_mvp.cpp
+
+    external:
+      dc3omp.f
+
+    include:
+      Hmat.hpp
+
+    bin:
+      dc3dmMesh
+      dc3dmBuild
+      dc3dmCompress
+
+    matlab:
+      hm_mvp.mex
+      dc3dm_mex.mex
+      dc3dm.m
+      ex.m
+

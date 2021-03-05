@@ -1,0 +1,7 @@
+#include "util/include/Elastostatics.hpp"
+
+class GreensFnOkadaBrickMesh : public ImplGreensFn {
+public:
+
+protected:
+};

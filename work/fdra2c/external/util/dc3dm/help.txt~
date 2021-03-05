@@ -1,0 +1,151 @@
+dc3dm: Software to
+  - nonuniformly discretize a rectangular planar fault in a halfspace,
+  - compute an H-matrix approximation to the matrix of slip-stress elasticity
+    Green's functions computed using Y. Okada's DC3D,
+  - and compute matrix-vector products with this matrix.
+See dc3dmMesh:    Mesh the rectangle according to a resolution function.
+    dc3dmBuild    Build the fault.
+    dc3dmCompress Form and compress the elasticity matrix.
+    dc3dm.m       Matlab interface.
+Version 0.0
+A.M. Bradley ambrad@cs.stanford.edu
+CDFM Group, Geophysics, Stanford University
+
+
+dc3dmMesh key_value_file
+
+  min_len, max_len [scalar]: Minimum and maximum side length of a rectangle.
+
+  x, y [1D array]: Tensor mesh points relative to an arbitrary origin. The
+    domain extends from x(1) to x(end), y(1) to y(end), and so has the
+    dimensions
+        xlen = x(end) - x(1)
+        ylen = y(end) - y(1).
+    We use the word "square" to mean the rectangle that has side lengths
+        xlen / ceil(xlen/max_len)  and  ylen / ceil(ylen/max_len).
+    Hence to get geometric squares, xlen and ylen should be divisible by
+    max_len.
+
+  f [2D array]: ny x nx array of f(x, y). f should be sampled enough that linear
+    interpolation is sufficient to represent the continuous function. Then the
+    mesh is refined so that max f in a square is equal to the square's side
+    length
+
+  mesh_write_filename [string]: The suffix .rmu is appended to it. This file
+    contains data about the mesh. Let Nr be the number of rectangles. Call the
+    ordering of mesh data "mesh order".
+
+
+dc3dmBuild key_value_file
+
+  mesh_read_filename [string]: .rmu file, without suffix, from dc3dmMesh.
+
+  depth_min [scalar]: Minimum depth of fault.
+
+  dipdeg [scalar]: Dipping angle of the fault in degrees. The fault dips in the
+    N-S direction. If positive, the S side is deeper than the N side, and
+    opposite if negative.
+
+  neighborhood [scalar]: Specify the size of the neighborhood for calculating
+    the high-order BEM elements. 0 gives constant-slip elements, 1 makes all
+    elements have a neighborhood including at least adjacent elements, and
+    larger numbers improve the approximation. hmmvpCompress takes longer with
+    larger neighborhood. I recommend 2, which is the default if left
+    unspecified.
+
+  Boundary conditions (BC). There are four types of BC:
+      Velocity (v-BC). A large slab adjacent to the boundary imposes a constant
+    slip rate.
+      0-velocity (0v-BC). The slab is at 0 slip rate. This is treated specially
+    for computational reasons.
+      Periodic. Opposite sides are mapped to each other.
+      Free. This occurs on the boundary that is at 0 depth (depth_min = 0), if
+    there is one.
+      BC are handled by specifying a set of strings. These are as
+    follows. First, the cardinal directions of the fault are
+        [e]ast: positive-x (strike) direction
+        [n]orth: positive-y (dip) direction.
+    [w]est and [s]outh follow from these. Specify a subset of these keys:
+        [e|n|s|w]0vbc [scalar]: 0v-BC on one of the cardinal sides.
+        [e|n|s|w]vbc [scalar]: v-BC on one of the cardinal sides.
+        [ew|ns]pbc [scalar]: Priodic on the east-west or north-south sides.
+    The default for all sides is [e|n|w|s]0vbc set to 0.
+      The value associated with one of these keys is the dominance of the
+    boundary condition; a higher number increases dominance. For example, if
+    this is specified:
+        evbc: 1, wvbc: 2, n0vbc: 3,
+    then (1) 's0vbc' is assumed to have been specified with value 0 and (2)
+    large slabs used to approximate the v-BC extend deep south (east and west
+    are dominant relative to south) but end at the north side (since the north
+    boundary is specified as dominant). Here is a diagram of this example:
+                               N: 0 v-BC
+                  __________________________________
+                           |              | 
+                   W: v-BC |    domain    | E: v-BC
+                           |______________|
+                           |   S: 0 v-BC  |
+    The issue of ordering matters only for (0-)velocity BC; values for periodic
+    BC are ignored. If two values are the same and the boundaries interfere, the
+    results are undefined.
+      If depth_min is 0, then the boundary at the surface has a free boundary
+    condition. This overrides any specification.
+      Generally, E-W (along-stride) periodic BC make sense but N-S ones do not
+    because of the halfspace.
+      As a hint, a subducting fault going to the surface, with y = 0 on the
+    updip end, is specified with dipdeg < 0, depth_min = 0. disl_dip > 0 is a
+    dislocation in the +y direction. Quite likely, a velocity BC is specified on
+    the N side: nvbc = 1; a free surface is on the S side, so it does not have
+    to be specified; and the E-W sides are one of these: (1) 0-velocity BC,
+    which hold by default; (2) evbc = 2, wvbc = 3; or (3) periodic: ewpbc =
+    0. This is written in Matlab as:
+        c.dipdeg = -12; c.depth_min = 0; c.nvbc = 1; c.ewpbc = 0;
+
+  build_write_filename [string]: Three files are created with suffixes .ra,
+    .bmb, and .hd appended to it.
+
+
+dc3dmCompress key_value_file
+
+  build_read_filename [string]: the .ra, .bmb, and .hd files, without suffix,
+    from dc3dmBuild.
+
+  do_bc_only [scalar]: If non-0, compute the boundary conditions and exit.
+
+  component [scalar]: Component to compute [optional; default 1]:
+        0 - along strike, 1 - along dip, 2 - normal.
+
+  disl_strike, disl_dip, disl_tensile [scalar]: Dislocation in the strike,
+    dip, and tensile directions, as in Y. Okada's routine dc3d.
+
+  bc_periodic_nlayers [scalar]: Number of periodic source image layers to use if
+    any periodic BC are specified. 0 is just the primary source patch, which is
+    not a bad approximation because the primary source patch is chosen to be the
+    nearest periodically-repeated source to a receiver. A number K larger than 0
+    uses K layers of images. I recommend 1, which is the default if left
+    unspecified.
+
+  write_bc_filename [string]: File in which to store 4*Nr binary
+    double-precision numbers containing the velocity boundary condition
+    data. The BC is that the medium on all sides specified by the '[e|n|w|s]vbc'
+    data slide at the same speed in the direction of 'component'. If a side does
+    not have a velocity BC, then the entries are 0. Ordering is as follows: Nr
+    double-precisions for the E BC, then N, then W, then S.
+
+  hm_write_filename [string]: The file to which to write the H-Matrix data. The
+    suffix .hm is appended to it.
+
+  tol [scalar]: Specifies the approximation error:
+        ||B_approx - B||_F <= tol ||B||_F,
+  where ||.||_F is the Frobenius norm, B is the matrix of Green's functions, and
+  B_approx is the H-matrix approximation.
+
+  mu, nu [scalar]: Lame parameters.
+
+  allow_overwrite [scalar, optional]: Says whether hm_write_filename can be
+    overwritten. If it is not provided, then overwrite of this file is not
+    allowed.
+
+  use_hmat_filename [string, optional]: An old H-matrix file for the same
+    problem that can be used to speed up constructing this one. This is
+    generally useful only if the old H-matrix was constructed at a higher
+    tolerance than this new one.

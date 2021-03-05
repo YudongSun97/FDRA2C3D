@@ -1,0 +1,89 @@
+#ifndef INCLUDE_HMMVP_COMPRESS
+#define INCLUDE_HMMVP_COMPRESS
+
+#include <vector>
+#include <string>
+#include "util/include/Exception.hpp"
+#include "hmmvp/include/Hd.hpp"
+#include "hmmvp/include/Hmat.hpp"
+
+namespace hmmvp {
+using namespace util;
+using namespace std;
+
+// Tell the user about compression of this block. Most users will likely ignore
+// these data. But it's useful if you want to do element-level accuracy tricks.
+struct CompressBlockInfo {
+  size_t nrows, ncols;
+  double tol;
+  bool is_abs_tol;
+};
+
+class GreensFn {
+public:
+  virtual ~GreensFn() {}
+  /* Compute B(rs,cs). Indexing starts at 1. B is preallocated. Load B with the
+     fast index on rs. Return true if all is well; false if there is an error in
+     computing the Green's function and you want compression to stop. */
+  virtual bool Call(const CompressBlockInfo& cbi, const vector<UInt>& rs,
+                    const vector<UInt>& cs, double* B) const = 0;
+  /* Optionally get told when Compressor is starting or finishing a block. */
+  virtual void StartBlock (const CompressBlockInfo& cbi) const {}
+  virtual void FinishBlock (const CompressBlockInfo& cbi) const {}
+};
+
+class Compressor {
+private:
+  virtual ~Compressor();
+
+public:
+  enum TolMethod { tm_mrem_fro,   // MREM with error bound tol ||B||_F.
+                   tm_mrem_abs,   // MREM with error bound tol.
+                   tm_brem_fro }; // BREM with error bound tol ||B||_F.
+  //todo Document!
+
+  void SetTolMethod(TolMethod tm);
+  TolMethod GetTolMethod() const;
+  bool IsMrem() const;
+  void SetTol(double tol) throw (Exception);
+  // This is necessary only when tm_mrem_fro is used.
+  void SetBfroEstimate(double Bfro) throw (Exception);
+  double GetBfroEstimate() const;
+  // Use another H-matrix file to speed up compressing this one. Returns false
+  // if file is incompatible.
+  void UseHmatFile(const string& hmat_filename)
+    throw (Exception, FileException);
+  bool HaveOldHmat() const;
+  double GetOldHmatBfro() const throw (Exception);
+  void SetOutputLevel(UInt lev);
+  // Parallelization is permitted only if a single Compressor exists at a
+  // time. Otherwise, nthreads must be 1.
+  UInt SetOmpNthreads(UInt nthreads);
+  void AvoidRedundantGfCalls(bool flag);
+  void UseCompressQr(bool flag);
+
+  //todo Implement UserReqException code.
+  double EstimateBfro()
+    throw (OutOfMemoryException, UserReqException);
+  
+  // If using MPI, only a single Compressor can exist at a time.
+  void CompressToFile(const string& hmat_fn)
+    throw (OutOfMemoryException, UserReqException, FileException);
+  Hmat* CompressInMemory(UInt ncol, UInt max_nthreads)
+    throw (OutOfMemoryException, UserReqException);
+  
+  // This shouldn't actually be called unless I'm doing a convergence test.
+  void SetPrec(UInt prec_code) throw (Exception);
+
+private:
+  Compressor();
+  Compressor(const Compressor&);
+  Compressor& operator=(const Compressor&);
+};
+
+Compressor* NewCompressor(const Hd* hd, GreensFn* gf) throw (Exception);
+
+void DeleteCompressor(Compressor* c);
+}
+
+#endif

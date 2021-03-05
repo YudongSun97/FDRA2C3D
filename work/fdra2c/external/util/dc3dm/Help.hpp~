@@ -1,0 +1,102 @@
+#ifndef INCLUDE_HMMVP_HELP_TEXT
+#define INCLUDE_HMMVP_HELP_TEXT
+/* Help text for programs. I write the text in a plain text file and then run
+   this routine:
+
+   function WrapPrintHelp(fn, for_macro)
+     if (nargin < 2) for_macro = false; end
+     macro_str = '';
+     if (for_macro) macro_str = '\'; end
+     fid = fopen(fn, 'r');
+     while (true)
+       ln = fgetl(fid);
+       if (~ischar(ln)) break; end
+       fprintf(1, '"%s\\n"%s\n', ln, macro_str);
+     end
+     fclose(fid);
+   end
+
+   For example: WrapPrintHelp('help.txt', true)
+*/
+
+#define _hmmvpCompress_PrintHelp_text_ \
+"hmmvpCompress key_value_file\n"\
+"  'key_value_file' contains the following fields:\n"\
+"\n"\
+"  'allow_overwrite' (optional) says whether write_(hd_/hmat_)filename can be\n"\
+"    overwritten. If it is not provided, then overwrite of these files is not\n"\
+"    allowed.\n"\
+"\n"\
+"  'do_extra_tasks_only' (optional) says whether to call ImplGreensFn::DoExtras()\n"\
+"    only and exit.\n"\
+"\n"\
+"  'write_hd_filename', 'use_hd_filename': Optionally, use one of these two\n"\
+"    keys. Use the first to save the decomposition after it is computed. Use the\n"\
+"    second to use a saved decomposition rather than computing a new one.\n"\
+"\n"\
+"  'write_hmat_filename' is the name of the file into which the H-matrix should\n"\
+"    be written.\n"\
+"\n"\
+"  'use_hmat_filename' is optionally an old H-matrix file for the same problem\n"\
+"    that can be used to speed up constructing this one.\n"\
+"\n"\
+"  'tol' specifies the approximation error:\n"\
+"      ||B_approx - B||_F <= tol ||B||_F.\n"\
+"\n"\
+"  'Bfro' optionally is an estimate of ||B||_F that should be used instead of the\n"\
+"    internally generated estimate.\n"\
+"\n"\
+"  'greens_fn_name' is a string indicating which Green's function class to use. A\n"\
+"    GF class may require more key-value pairs. Currently available GFs are\n"\
+"    these:\n"\
+"\n"\
+"      'inverse-r': This is for testing. Provide these key-value pairs:\n"\
+"        'X': 3xN array of points.\n"\
+"        'order': 0, 1, 2, 3.\n"\
+"        'delta': Plummer softening parameter.\n"\
+"\n"\
+"      'okada-rect-tensor-mesh':\n"\
+"        'x', 'eta': x is an (ns+1)-vector of along-strike cell edges. eta is an\n"\
+"          (nd+1)-vector of along-dip cell edges. The mesh is a tensor- product\n"\
+"          mesh. The coordinate system is in the plane of the fault. Fast index\n"\
+"          is along strike from x(1) to x(end) and eta(1) to eta(end).\n"\
+"        'depth_min': Minimum depth of fault.\n"\
+"        'dipdeg': Dipping angle of the fault in degrees.\n"\
+"        'mu', 'nu': Lame parameters.\n"\
+"        'disl_strike', 'disl_dip, 'disl_tensile': As in Okada's routine dc3d.\n"\
+"        'component': Component to compute [optiona; default 1]:\n"\
+"          0 - along strike, 1 - along dip, 2 - normal.\n"\
+"        'bc_filename': File in which to store N binary double-precision numbers,\n"\
+"          ordered as above, containing the velocity boundary condition data. The\n"\
+"          BC is that the medium on all sides except the updip one slide in the\n"\
+"          direction of 'component'.\n"\
+"        As a hint, a subducting fault going to the surface, with eta=0 on the\n"\
+"        updip end, is specified with dipdeg < 0, depth_min = 0. disl_dip > 0 is\n"\
+"        a dislocation in the +eta direction.\n"\
+"\n"\
+"      'okada-subduct-symm-rect-periodic-tensor-mesh':\n"\
+"        'x', 'eta': x is an (ns/2+1)-vector of along-strike cell edges. x(1) =\n"\
+"          0, and the full fault is given by [x(end:-1:2) x(1:end)]. eta is an\n"\
+"          (nd+1)-vector of along-dip cell edges. The mesh is a tensor- product\n"\
+"          mesh. The coordinate system is in the plane of the fault. Fast index\n"\
+"          is along strike from x(1) to x(end) and eta(1) to eta(end). Let N =\n"\
+"          (ns/2)*nd.\n"\
+"        'mu', 'nu': Lame parameters.\n"\
+"        'depth_min': Minimum depth of fault.\n"\
+"        'dipdeg': Dipping angle of the fault in degrees.\n"\
+"        'nrepeat': Number of repeat images in each strike direction.\n"\
+"        'bc_filename': File in which to store N binary double-precision numbers,\n"\
+"          ordered as above, containing the velocity boundary condition data from\n"\
+"          the down-dip end.\n"\
+"\n"\
+"      'okada-subduct-symm-rect-periodic-quat-mesh':\n"\
+"        'rmesh_filename': RectUnstructMesh file.\n"\
+"        'mu', 'nu': Lame parameters.\n"\
+"        'depth_min': Minimum depth of fault.\n"\
+"        'dipdeg': Dipping angle of the fault in degrees.\n"\
+"        'nrepeat': Number of repeat images in each strike direction.\n"\
+"        'bc_filename': File in which to store N binary double-precision numbers,\n"\
+"          ordered as above, containing the velocity boundary condition data from\n"\
+"          the down-dip end.\n"
+
+#endif

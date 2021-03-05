@@ -1,0 +1,40 @@
+i think i want the release package to look like this:
+    src/
+      util/include
+          /src
+          /matlab
+      hmmvp/...
+      dc3dm/...
+      external/
+        dc3omp.f
+
+    include/
+      Hmat.hpp
+
+    bin/
+      dc3dmMesh
+      dc3dmBuild
+      dc3dmCompress
+      dc3dmMvpEx
+
+    matlab/
+      hm_mvp.mex
+      dc3dm_mex.mex
+      dc3dm.m
+      ex.m
+
+    Makefile
+    make.m
+    readme.txt
+
+
+  - mv dc3dm code to code/dc3dm, including Rect*, Brick*, etc.
+  - write a python program to make the release package. put license headers in
+    all files.
+  - i want include and matlab dirs to be as clean as possible.
+
+
+i'll separately release hmmvp, but for that i think i'll take the monolithic
+approach. i'm not that concerned about handholding there because anybody who
+wants to use hmmvp will be an experienced enough programmer to handle at least a
+monolithic build.

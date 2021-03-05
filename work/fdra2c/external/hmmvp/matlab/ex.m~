@@ -1,0 +1,384 @@
+function varargout = ex(varargin)
+% hmmvp example usage
+%   This file shows how to use the Matlab interface to hmmvp.
+%   Type 'help hm_mvp', 'help hmcc_hd', and 'help hm' to get instructions on
+% individual components.
+  
+% Andrew M. Bradley ambrad@cs.stanford.edu
+  [varargout{1:nargout}] = feval(varargin{:});
+end
+  
+% ------------------------------------------------------------------------------
+% Some test drivers. You might play around with the parameters. These can
+% serve as a model for your code.
+
+function test_All(dr,N,wiggle)
+% wiggle should be something like 1e-2 to 1e-1 to be interesting.
+  if (nargin < 3) wiggle = 0; end
+  if (nargin < 2) N = 5000; end
+  if (nargin < 1) dr = '.'; end
+  [fn fn1] = test_Build(dr,N,wiggle);
+  test_Mvp(fn);
+  test_Mvp(fn1);
+  test_Solve(fn);
+  test_Solve(fn1);
+end
+
+function test_BlackBox(dr,N,wiggle)
+  if (nargin < 3) wiggle = 0; end
+  if (nargin < 2) N = 5000; end
+  p = ex('Parameters','delta',1e-4,'N',N,'tol',1e-3,...
+	 'wiggle',wiggle,'geom','edgecube','dir',dr);
+  if (nargin < 1) dr = '.'; end
+  fn = sprintf('%s/G%sO%1.1fD%dN%1.1fT%d',dr,...
+	       p.geom(1:2),p.order,log10(p.delta),log10(p.N),log10(p.tol));
+  fprintf(1,'Saving to %s\n',fn);
+  [bs pp pq] = hmcc_hd(p.X,p.X);
+  gf_New(p);
+  hm('BlackBoxCompress',bs,pp,pq,@gf_Eval,p.tol,fn);
+end
+
+function [fn fn2] = test_Build(dr,N,wiggle)
+% Construct an H-matrix. We don't know ||B||_F. Hence request a smaller
+% tolerance than we actually want.
+  if (nargin < 3) wiggle = 0; end
+  if (nargin < 2) N = 5000; end
+  p = ex('Parameters','delta',1e-4,'N',N,'tol',1e-5,...
+	 'wiggle',wiggle,'geom','edgecube','dir',dr);
+  t = tic();
+  [fn efro] = ex('Build',p);
+  fprintf(1,'et = %f\n',toc(t));
+  
+  % Examine it.
+  [id hnnz] = hm_mvp('init',fn);
+  in = hm('HmatInfo',fn);
+  fprintf(1,'Compression: %3.1fx\n',in.m*in.n/hnnz);
+  Bfro = sqrt(hm_mvp('fronorm2',id));
+  fprintf(1,'Est. ||B||_F = %3.3e  Actual ||B||_F = %3.3e\n',efro,Bfro);
+  [ce n1 in1] = hm('CondEst1',id);
+  fprintf(1,'Est. cond(.,1) = %3.3e\n',ce);
+  [ce re] = hm('CondEstFro',id,struct('reltol',0.05));
+  fprintf(1,'Est. cond(.,''fro'') = %3.3e  with est. rel err = %3.3e\n',ce,re);
+  if (N < 2500)
+    B = hm_mvp('extract',id,1:in.m,1:in.n);
+    Bi = inv(B);
+    fprintf(1,'Actual cond(.,1) = %3.3e\n',norm(B,1)*norm(Bi,1));
+    fprintf(1,'Actual cond(.,''fro'') = %3.3e\n',norm(B,'fro')*norm(Bi,'fro'));
+  end
+  hm_mvp('cleanup',id);
+  
+  % Construct another one at the larger desired tolerance using the first one
+  % to get started.
+  fprintf(1,'-> Looser tolerance, using the first one.\n');
+  p.tol = 1e-3;
+  t = tic();
+  [fn1 efro] = ex('Build',p,'old_hmat_fn',fn);
+  fprintf(1,'et = %f\n',toc(t));
+  % Examine the new one.
+  [id hnnz] = hm_mvp('init',fn1);
+  in = hm('HmatInfo',fn1);
+  fprintf(1,'Compression: %3.1fx\n',in.m*in.n/hnnz);
+  fro = sqrt(hm_mvp('fronorm2',id));
+  fprintf(1,'Est. ||B||_F = %3.3e  Actual = %3.3e\n',efro,fro);
+  [ce n1 in1] = hm('CondEst1',id);
+  fprintf(1,'Est. cond(.,1) = %3.3e\n',ce);
+  [ce re] = hm('CondEstFro',id,struct('reltol',0.05));
+  fprintf(1,'Est. cond(.,''fro'') = %3.3e  with est. rel err = %3.3e\n',ce,re);
+  hm_mvp('cleanup',id);
+  
+  fprintf(1,'-> Same, but from scratch.\n');
+  p.tol = 1e-3;
+  t = tic();
+  [fn1 efro] = ex('Build',p,'Bfro',Bfro);
+  fprintf(1,'et = %f\n',toc(t));
+  [id hnnz] = hm_mvp('init',fn1);
+  in = hm('HmatInfo',fn1);
+  fprintf(1,'Compression: %3.1fx\n',in.m*in.n/hnnz);
+  hm_mvp('cleanup',id);
+  
+  fprintf(1,'-> Now one at a tighter tol.\n');
+  p.tol = 1e-8;
+  t = tic();
+  [fn1 efro] = ex('Build',p,'old_hmat_fn',fn);
+  fprintf(1,'et = %f\n',toc(t));
+  [id hnnz] = hm_mvp('init',fn1);
+  in = hm('HmatInfo',fn1);
+  fprintf(1,'Compression: %3.1fx\n',in.m*in.n/hnnz);
+  hm_mvp('cleanup',id);
+  
+  fprintf(1,'-> Same, but from scratch:\n');
+  p.tol = 1e-8;
+  t = tic();
+  [fn1 efro] = ex('Build',p,'Bfro',Bfro);
+  fprintf(1,'et = %f\n',toc(t));
+  [id hnnz] = hm_mvp('init',fn1);
+  in = hm('HmatInfo',fn1);
+  fprintf(1,'Compression: %3.1fx\n',in.m*in.n/hnnz);
+  hm_mvp('cleanup',id);
+  
+  fprintf(1,'-> Use tol_method = BinvFro.\n');
+  t = tic();
+  p.tol = 1e-3; % Since we're now bounding ||dy||/||y||, tol can be larger.
+  [fn2 rBinvFro] = ex('Build',p,'old_hmat_fn',fn,'tol_method','BinvFro');
+  fprintf(1,'et = %f\n',toc(t));
+  fprintf(1,'Est. ||inv(B)||_F = %e  Est. cond(B,''fro'') = %e\n',...
+	  1/rBinvFro,efro/rBinvFro);
+  [id hnnz] = hm_mvp('init',fn2);
+  in = hm('HmatInfo',fn2);
+  fprintf(1,'Compression: %3.1fx\n',in.m*in.n/hnnz);
+end
+
+function fn = test_CompressAbs(N,wiggle)
+% Construct an H-matrix using tol_method = abs.
+  if (nargin < 2) wiggle = 0; end
+  if (nargin < 1) N = 5000; end
+  p = ex('Parameters','delta',1e-4,'N',N,'tol',1e-2,...
+	 'wiggle',wiggle,'geom','edgecube');
+  t = tic();
+  [fn efro] = ex('Build',p,'tol_method','abs');
+  fprintf(1,'et = %f\n',toc(t));
+  [id hnnz] = hm_mvp('init',fn);
+  in = hm('HmatInfo',fn);
+  fprintf(1,'Compression: %3.1fx\n',in.m*in.n/hnnz);
+  hm_mvp('cleanup',id);
+end
+
+function test_Mvp(fn)
+% 'fn' is from 'Build'.
+  
+  % Read the H-matrix file's header information.
+  in = hm('HmatInfo',fn);
+  % Load the H-matrix into memory and use 3 threads to compute MVP. Allow up
+  % to 10 vectors at once.
+  id = hm_mvp('init',fn,3,10);
+  
+  X = randn(in.n,10);
+  % The basic MVP
+  Y = hm_mvp('mvp',id,X);
+  % Subset of rows
+  rs = 1:2:in.m;
+  Y1 = hm_mvp('mvp',id,X,rs);
+  fprintf(1,'Should be the same to ~sqrt(eps) or eps, depending on realp: %1.1e\n',...
+	  relerr(Y(rs,:),Y1(rs,:)));
+  % Subset of rows and cols
+  cs = 1:3:in.n;
+  ncs = setdiff(1:in.n,cs);
+  Y2a = hm_mvp('mvp',id,X,rs,cs);
+  Y2b = hm_mvp('mvp',id,X,rs,ncs);
+  fprintf(1,'Should be the same to ~sqrt(eps): %1.1e\n',...
+	  relerr(Y(rs,:),Y2a(rs,:)+Y2b(rs,:)));
+  
+  % For repeated calls to 'mvp' having the same row and column subsets, call
+  %   hm_mvp('ststate',id);
+  % to save the internal state associated with the index sets. For small
+  % index sets, this can offer quite a speedup. Call
+  %   hm_mvp('strelease',id);
+  % when finished. NB: There is no error checking, so failing to release the
+  % internal state will be a silent bug.
+
+  hm_mvp('cleanup',id);
+end
+
+function test_Solve(fn)
+% 'fn' is from 'Build'.
+  
+  % Read the H-matrix file's header information.
+  in = hm('HmatInfo',fn);
+  % Load the H-matrix into memory and use 3 threads to compute MVP.
+  id = hm_mvp('init',fn,3);
+
+  % Form a preconditioner
+  t = tic();
+  f = hm('BlocksPrecon',id);
+  fprintf(1,'Time to build precon: %3.1es\n',toc(t));
+  
+  % Solve the system B x = b.
+  xt = randn(in.n,1);      % Random true (relative to H-matrix approx) x
+  b = hm_mvp('mvp',id,xt); % Get b
+  
+  outfn = @(str,et,nmvp,x)...
+    fprintf(1,['With%s preconditioning:\n',...
+	       '  Time to solve: %3.1es\n',...
+	       '  #MVP: %d\n',...
+	       '  ||B x - b||/||b|| = %3.1e\n',...
+	       '  ||x - xt||/||xt|| = %3.1e\n'],...
+	       str,et,nmvp,relerr(b,hm_mvp('mvp',id,x)),relerr(xt,x));
+  tol = 1e-6;
+  t = tic();
+  [x1 o1] = hm('SolveBxb',id,b,tol);
+  et = toc(t);
+  outfn('out',et,o1.nmvp,x1);
+  t = tic();
+  [x2 o2] = hm('SolveBxb',id,b,tol,struct('precon',f));
+  et = toc(t);
+  outfn('',et,o2.nmvp,x2);
+  fprintf(1,'Transpose problem:\n');
+  t = tic();
+  [x1 o1] = hm('SolveBxb',id,b,tol,struct('dir_mvp','tmvp'));
+  et = toc(t);
+  outfn('out',et,o1.nmvp,x1);
+  t = tic();
+  tmp = f.L';
+  f.L = f.U';
+  f.U = tmp;
+  [x2 o2] = hm('SolveBxb',id,b,tol,struct('precon',f,'dir_mvp','tmvp'));
+  et = toc(t);
+  outfn('',et,o2.nmvp,x2);
+  
+  hm_mvp('cleanup',id);
+end
+
+function re = relerr(a,b,p)
+  if (nargin < 3) p = 'fro'; end
+  re = norm(a-b,p)/norm(a,p);
+end
+
+% ------------------------------------------------------------------------------
+% First we need an operator B(r,c) that gives the matrix entries for rows r
+% and columns c. This is implemented by the gf_* functions.
+%   hmmvp was developed with the application of half-space Green's functions
+% in mind. For simplicity, the following code considers just the simple 1/r^p
+% singularity.
+  
+function gf_New(p)
+% Set up the Green's functions. p is from Parameters.
+  global gf;
+  gf.order = p.order;
+  gf.delta = p.delta;
+  gf.zero_diag = p.zero_diag;
+  gf.X = p.X;
+  gf.charge = p.charge;
+end
+
+function gf_Cleanup()
+  clear global gf;
+end
+
+function B = gf_Eval(rs,cs)
+% Evaluate B(rs,cs) for the requested rows rs and columns cs.
+  global gf;
+  nr = length(rs);
+  ns = length(cs);
+  B = zeros(nr,ns);
+  for (i = 1:ns)
+    r2 = sum((repmat(gf.X(:,cs(i)),1,nr) - gf.X(:,rs)).^2);
+    % For parameter eps in eps^2 = delta, this is called Plummer softening, at
+    % least in gravity simulations.
+    r = sqrt(r2 + gf.delta);
+    if (gf.order > 0)
+      B(:,i) = 1./r.^gf.order;
+    else
+      B(:,i) = log(r);
+    end
+    B(:,i) = B(:,i)*gf.charge(cs(i));
+    if (gf.zero_diag)
+      B( r2 == 0, i) = 0;
+    end
+  end
+  if (~gf.zero_diag && gf.delta == 0)
+    B(isinf(B)) = 0;
+  end
+end
+
+% ------------------------------------------------------------------------------
+% Next we need to define the example problem geometry. We consider edges, faces,
+% and the full volume of a cube.
+
+function p = Parameters(varargin)
+% Set up the problem.
+  [p.dir p.tol p.geom p.N p.order p.delta p.wiggle p.vary_charge] =....
+      process_options(varargin,...
+                      'dir','./',...
+		      'tol',1e-5,...      % Error tolerance on approx to B
+		      'geom','edgecube',...
+		      'N',1000,...        % B will be approximately NxN
+		      'order',3,...       % Order of the singularity
+		      'delta',1e-4,...    % For Plummer softening
+		      'wiggle',0,...      % Wiggle the points a little?
+                      'vary_charge',0);   % Vary the charges by this order of mag.
+  p.zero_diag = 0;
+  if (p.delta == 0) p.zero_diag = 1; end
+  
+  p.eta = 3;
+  p.split_method = 0;
+    
+  switch (p.geom)
+   case 'line'
+    p.X = [linspace(-1,1,p.N); zeros(1,p.N); zeros(1,p.N)];
+   case 'square'
+    n = ceil(sqrt(p.N));
+    p.N = n^2;
+    x = linspace(-1,1,n);
+    [X Y] = ndgrid(x,x);
+    p.X = [X(:)'; Y(:)'; zeros(1,p.N)];
+   case {'cube'}
+    n = ceil(p.N^(1/3));
+    p.N = n^3;
+    x = linspace(-1,1,n);
+    [X Y Z] = ndgrid(x,x,x);
+    p.X = [X(:)'; Y(:)'; Z(:)'];
+   case 'surfcube'
+    n = ceil(sqrt(p.N/6));
+    p.N = 6*n^2;
+    dx = 2/n;
+    x = -1+dx/2:dx:1-dx/2;
+    o = ones(1,n^2);
+    [X Y] = ndgrid(x,x);
+    X = X(:)'; Y = Y(:)';
+    p.X = [X -X X X o -o; Y Y o -o Y -Y; o -o Y -Y X X];
+   case 'edgecube'
+    n = ceil(p.N/12);
+    p.N = 12*n;
+    dx = 2/n;
+    x = -1+dx/2:dx:1-dx/2;
+    o = ones(1,n);
+    p.X = [x x x x -o o -o o -o o -o o;
+	   -o o -o o x x x x -o -o o o;
+	   -o -o o o -o -o o o x x x x];
+   otherwise
+    error(sprintf('geom cannot be %s'),p.geom);
+  end
+  
+  if (p.wiggle)
+    p.X = p.X.*(1 + p.wiggle*randn(size(p.X)));
+  end
+  
+  if (p.vary_charge)
+    w = cos(2*pi*(1:p.N)/p.N);
+    miw = min(w); maw = max(w);
+    w = (w - miw)/(maw - miw);
+    p.charge = 1 + w*(10^p.vary_charge - 1);
+    %p.charge = linspace(1, 10^p.vary_charge, p.N);
+    %p.charge = logspace(0, p.vary_charge, p.N);
+  else
+    p.charge = ones(1, p.N);
+  end
+
+  plot3(p.X(1,:),p.X(2,:),p.X(3,:),'.');
+end
+
+% ------------------------------------------------------------------------------
+% Given p from 'Parameters', build the H-matrix approximation to B.
+
+function [fn tol_d_rerr] = Build(p,varargin)
+  [verbose old_hmat_fn tol_method Bfro BinvFro] = process_options(...
+      varargin,'verbose',1,'old_hmat_fn','','tol_method','Bfro',...
+      'Bfro',[],'BinvFro',[]);
+  dr = p.dir;
+
+  fn = sprintf('%s/G%sO%1.1fD%dN%1.1fT%d',dr,...
+	       p.geom(1:2),p.order,log10(p.delta),log10(p.N),log10(p.tol));
+  fprintf(1,'Saving to %s\n',fn);
+
+  [bs pp pq] = hmcc_hd(p.X,p.X);
+  
+  gf_New(p);
+  if (isempty(Bfro) && isempty(old_hmat_fn) && ~strcmp(tol_method,'abs'))
+    n = length(pp);
+    Bfro = hm('EstBfroLowBndCols',@gf_Eval,pp,pq,1:n,1:n);
+  end
+  tol_d_rerr = hm('Compress',bs,pp,pq,@gf_Eval,p.tol,fn,...
+		  'old_hmat_fn',old_hmat_fn,'tol_method',tol_method,...
+		  'Bfro',Bfro,'BinvFro',BinvFro);
+  gf_Cleanup();
+end

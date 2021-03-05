@@ -1,0 +1,23 @@
+#include <iostream>
+#include <string>
+#include "mex.h"
+#include "util/include/MexUtil.hpp"
+#include "util/include/MeshRectUnstruct.hpp"
+using namespace std;
+
+// Clean up command.
+static bool GetCommand(mxArray* mcmd, string* fn)
+{
+  int strlen = mxGetNumberOfElements(mcmd) + 1;
+  vector<char> vfn(strlen);
+  if (mxGetString(prhs[0], &vfn[0], strlen) != 0) return false;
+  for (int i = 0; i < strlen - 1; i++) vfn[i] = tolower(vfn[i]);
+  *fn = string(&vfn[0]);
+  return true;
+}
+
+void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
+{
+  if (nrhs < 1 || !GetCommand(prhs[0], fn))
+    mexErrMsgTxt("[...] = rmesh('cmd',...)");
+}

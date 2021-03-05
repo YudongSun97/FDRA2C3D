@@ -1,0 +1,15 @@
+#include "hmmvp/include/Hmat.hpp"
+
+int chmat_init (const char* hmat_fn, const int ncol, const int max_nthreads,
+                CHmat* hm) {
+
+}
+
+int chmat_mvp (const CHmat hm, const double* x, const double* y,
+               const int ncol) {
+
+}
+
+void chmat_cleanup (CHmat hm) {
+
+}

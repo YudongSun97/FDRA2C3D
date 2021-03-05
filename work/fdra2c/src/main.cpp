@@ -85,8 +85,8 @@
      the length of lineint_wts, which has length nx.  */
 
 #include <stdio.h>
-#include "../util/include/Mpi.hpp"
-#include "../util/include/KeyValueFile.hpp"
+#include "util/include/Mpi.hpp"
+#include "util/include/KeyValueFile.hpp"
 #include "Fdra.hpp"
 #include "HmatrixStressFn.hpp"
 #include "MyCodeAnalysis.hpp"

@@ -1,0 +1,179 @@
+function varargout = ex (varargin)
+% Test the dc3dm main programs. This also serves as an example of how to use
+% dc3dm in Matlab.
+%   To run with default settings, in Matlab type
+%     >> ex('WriteKvfs');
+% Then in a shell run the three commands that appear.
+%   Use this file as a guide to setting up your own problems.
+  [varargout{1:nargout}] = feval(varargin{:});
+end
+
+function [kvf_fns cs] = WriteKvfs ()
+% Set up a problem and write the dc3dm commands to solve it.
+  o = Opts();
+  o.len_fac = 0.5;
+  p = MakeProps(o);
+  cs{1} = WriteMeshKvf(o, p);
+  cs{2} = WriteBuildKvf(o);
+  cs{3} = WriteCompressKvf(o, cs{2});
+  for (i = 1:numel(cs)) kvf_fns{i} = cs{i}.kvf; end
+  bins = {'Mesh' 'Build' 'Compress'};
+  for (i = 1:numel(bins))
+    fprintf('./bin/dc3dm%s %s.kvf;\n', bins{i}, kvf_fns{i});
+  end
+end
+
+function o = Opts ()
+  % Lengths are in [m].
+  o = struct('rfac', 1, 'len_fac', 1, 'tol', 1e-5, 'problem', 1);
+end
+
+function bfn = BaseFn (o)
+% Come up with an informative base filename.
+  dr = '/scratch/ambrad/test/';
+  bfn = sprintf('%sdc3t_rf%1.2flf%1.2f', dr, o.rfac, o.len_fac);
+end
+
+function p = MakeProps (o)
+% Set the frictional and other properties for the domain.
+  dip_len = o.len_fac*10e3;
+  strike_len = o.len_fac*10e3;
+  n = 1001;
+
+  p.x = linspace(-0.5*strike_len, 0.5*strike_len, n);
+  p.y = linspace(-0.5*dip_len, 0.5*dip_len, n);
+  [X Y] = meshgrid(p.x, p.y);
+  
+  radius = 0.1*o.len_fac*dip_len; % radius of disk
+  t_width = 0.5*radius; % transition width
+  
+  r = sqrt(X.^2 + Y.^2) / radius;
+  alpha = TransitionWidth(t_width/radius, 0.99);
+  w_sigma = Sigmoid(r, 1, alpha, 0, max(r(:)), 0, 1);
+  w_amb = Sigmoid(r, 2, alpha, 0, max(r(:)), 0, 1);
+  
+  one = ones(size(X));
+  bl = 0.01; bs = 0.005;
+  amb_vw = -0.005; amb_vs = 0.005;
+  d_c = 1e-4;
+  sigma_s = 1e6; sigma_l = 8*sigma_s;
+
+  p.mu = 3e10;
+  p.nu = 0.25;
+  p.b = bl*(1 - w_amb) + bs*w_amb;
+  p.a = p.b + amb_vw*(1 - w_amb) + amb_vs*w_amb;
+  p.d_c = d_c*one;
+  p.sigma = sigma_l*(1 - w_sigma) + sigma_s*w_sigma;
+  p.h_star = p.mu/(1 - p.nu)*p.d_c./(p.sigma.*p.b);
+end
+
+function c = WriteMeshKvf (o, p)
+% Write the key-value file for dc3dmMesh.
+  c.mesh_write_filename = BaseFn(o);
+  % Min and max element lengths don't really matter unless they are used to
+  % bound the resolution function f. Here f is well behaved so I set the min
+  % to 0 and make sure there are at least 8 elements in each direction of the
+  % domain.
+  c.min_len = 0;
+  c.max_len = min(diff(p.x([1 end])), diff(p.y([1 end])))/8;
+  c.x = p.x;
+  c.y = p.y;
+  % Make sure there are 5*o.rfac elements in each direction per h*.
+  c.f = p.h_star/(o.rfac*5);
+  c.kvf = [BaseFn(o) '_m'];
+  dc3dm.WriteKvf(c.kvf, c, true);
+end
+
+function c = WriteBuildKvf (o)
+% Write the key-value file for dc3dmBuild.
+  bfn = BaseFn(o);
+  c.mesh_read_filename = bfn;
+  c.build_write_filename = sprintf('%s_p%d', bfn, o.problem);
+  
+  % Setting depth_min to 0 makes the 0-depth boundary (N or S depending on
+  % the sign of dipdeg) have a free surface boundary condition.
+  c.depth_min = 0;
+  switch (o.problem)
+    case 1 % subduction
+      % Dip is negative because we want the S boundary to be at the surface
+      % and the N boundary have the velocity BC.
+      c.dipdeg = -12;
+      % The fault is periodic along-strike.
+      c.ewpbc = 0;
+      % This is the velocity boundary condition at depth.
+      c.nvbc = 2;
+    case 2 % strike-slip
+      c.dipdeg = -90;
+      % Surround the buried fault with uniform slip.
+      c.evbc = 1;
+      e.evbc = 2;
+      e.nvbc = 3;
+    otherwise
+      error(sprintf('%d is not a valid problem number.', o.problem));
+  end
+  
+  c.neighborhood = 4;
+  c.bc_periodic_nlayers = 1;
+  
+  c.kvf = [bfn '_b'];
+  dc3dm.WriteKvf(c.kvf, c, true);
+end
+
+function c = WriteCompressKvf (o, cb)
+% Write the key-value file for dc3dmCompress.
+  switch (o.problem)
+    case 1
+      c.component = 1;
+      c.disl_strike = 0; c.disl_dip = 1; c.disl_tensile = 0;
+    case 2
+      c.component = 0;
+      c.disl_strike = 1; c.disl_dip = 0; c.disl_tensile = 0;
+    otherwise
+      error(sprintf('%d is not a valid problem number.', o.problem));
+  end
+
+  bfn = BaseFn(o);
+  c.mesh_read_filename = bfn;
+  c.build_read_filename = cb.build_write_filename;
+  c.tol = o.tol;
+  c.hm_write_filename = sprintf(...
+    '%s_tol%1.1fc%dds%1.1fdd%1.1f', cb.build_write_filename, -log10(c.tol),...
+    c.component, c.disl_strike, c.disl_dip);
+
+  c.allow_overwrite = 1;
+  c.mu = 3e10;
+  c.nu = 0.25;
+  c.nthreads = 16;
+  
+  c.kvf = [bfn '_c'];
+  dc3dm.WriteKvf(c.kvf, c, true);
+end
+
+% ------------------------------------------------------------------------------
+% Utilities.
+
+function y = Sigmoid (x, xt, a, xs, xe, ys, ye)
+% y = Sigmoid(x, xt, alpha, p, xs, xe, ys, ye)
+%   xt is the transition point.
+%   ys(xs), ye(xe) are the values at reference points.
+%   alpha is the constant specifying the transition width. See
+% SigmoidTransitionWidth for more.
+  assert(xe > xs);
+  fn = @(x) 1./(1 + exp(-a.*x));
+  y0s = fn(xs - xt);
+  y0e = fn(xe - xt);
+  y = ys + (ye - ys).*(fn(x - xt) - y0s)./(y0e - y0s);
+end
+
+function alpha = TransitionWidth (width, at_p)
+% alpha = TransitionWidth(width, at_p)
+%   See Sigmoid.
+%   The transition has width 'width' in the sense that
+%       abs(diff(y(x +/- width/2))) = at_p * abs(y1 - ye).
+% So at_p should be something like 0.9.
+%   We do this calculation for the exponent p = 1 only.
+  assert(at_p > 0 && at_p < 1);
+  assert(width > 0);
+  alpha = -2/width*log(2/(1 + at_p) - 1);
+  assert(alpha > 0);
+end
