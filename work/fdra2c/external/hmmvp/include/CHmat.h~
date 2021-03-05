@@ -1,0 +1,13 @@
+// Limited C interface to hmmvp matrix-vector product.
+
+#ifndef INCLUDE_HMMVP_C_HMAT
+#define INCLUDE_HMMVP_C_HMAT
+
+extern "C" {
+  typedef void* CHmat;
+
+  CHmat cfhmat_init_(const char* hmat_fn, int* ncol, int* max_nthreads);
+
+}
+
+#endif

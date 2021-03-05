@@ -1,0 +1,3 @@
+// Example usage of hmmvp's matrix-vector product. Serial or OpenMP in C.
+
+#include "hmmvp/include/CHmat.h"

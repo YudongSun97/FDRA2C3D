@@ -1,0 +1,12 @@
+[3/5/2021, Camilla Cattania]
+
+I changed the file structure since compiling fdra2c was a headache due to unclear dependencies on hmmvp and util (which were both local folders and external libraries); and because the external libraries had to be recompiled every time due to problems with backward compatibility of C++ standards.
+
+I tested it with the following configurations: 
+1) gcc 6.3.0, openmpi 1.8.1
+2) gcc 7.5.0, openmpi 2.1.1
+
+NOTE: it did not work with openmpi 3.1.3 and 4.0.4, and I still need to figure out why.
+
+The only change that should required to compile is to add the path to BLASLIB in the Makefile. Similarly, if recompiling the hmmvp or util libraries in the future, replace BLASLIB and LAPACKLIB with the path to the local installation.
+

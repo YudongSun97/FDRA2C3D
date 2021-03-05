@@ -1,0 +1,45 @@
+#include <iostream>
+#include "mex.h"
+#include "hmmvp/include/Hd.hpp"
+#include "util/matlab/MexUtil.hpp"
+using namespace std;
+
+// Each column has [r0 c0 nr nc].
+void HdToMex(const hmmvp::Hd* hd, mxArray*& mbs, mxArray*& mp, mxArray*& mq)
+{
+  mbs = mxCreateDoubleMatrix(4, hd->NbrBlocks(), mxREAL);
+  double* bs = mxGetPr(mbs);
+  int k = 0;
+  for (hmmvp::Hd::iterator it = hd->Begin(), end = hd->End();
+       it != end; ++it, k += 4) {
+    bs[k  ] = it->r0;
+    bs[k+1] = it->c0;
+    bs[k+2] = it->m;
+    bs[k+3] = it->n;
+  }
+  vector<util::UInt> p, q;
+  hd->Permutations(p, q);
+  mp = util::VectorToMex(p);
+  mq = util::VectorToMex(q);
+}
+
+// Implements
+//     [bs p q] = hmcc_hd(D,[R])
+// D corresponds to the *column*, not row, coordinates. I might switch this in
+// the future; the original logic is that the matrix maps slip in space D to
+// stress in R: ie, D -> R.
+void mexFunction(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
+{
+  if (nrhs < 1 || nrhs > 2 || nlhs != 3)
+    mexErrMsgTxt("Calling sequence is [bs p q] = hmcc_hd(D,[R]).");
+  if (mxGetM(prhs[0]) != 3) mexErrMsgTxt("D must be 3xN.");
+  if (nrhs == 2 && mxGetNumberOfElements(prhs[1]) > 0 && mxGetM(prhs[1]) != 3)
+    mexErrMsgTxt("R must be 3xN.");
+
+  util::Matrix<double> D, R;
+  util::MexToMatrix(prhs[0], D);
+  if (nrhs == 2) util::MexToMatrix(prhs[1], R);
+
+  hmmvp::Hd* hd = hmmvp::NewHd(D, R);
+  HdToMex(hd, plhs[0], plhs[1], plhs[2]);
+}

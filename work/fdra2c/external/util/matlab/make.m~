@@ -1,0 +1,12 @@
+% Configure options
+use_omp = 1;
+
+p = '.';
+flags = '-O';
+if(use_omp)
+  flags = [flags [' CXXFLAGS="\$CXXFLAGS -fopenmp" ',...
+                  'LDFLAGS="\$LDFLAGS -fopenmp"']];
+end
+flags = [flags ' CXXLIBS="\$CXXLIBS -Wall -lmwblas -lmwlapack"'];
+mc = sprintf('mex -I../.. -outdir %s -largeArrayDims %s',p,flags);
+eval(sprintf('%s rmesh.cpp ../src/RectMeshUnstruct.cpp MexUtil.cpp',mc));

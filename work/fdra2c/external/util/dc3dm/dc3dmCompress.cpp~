@@ -1,0 +1,329 @@
+#include <stdio.h>
+#include <math.h>
+#include <iostream>
+#include <algorithm>
+#include "util/include/Util.hpp"
+#include "util/include/OpenMP.hpp"
+#include "util/src/RectMeshUnstruct_pri.hpp"
+#include "util/src/BrickMeshBemBuilder_pri.hpp"
+#include "util/include/Elastostatics.hpp"
+#include "hmmvp/include/Hd.hpp"
+#include "hmmvp/include/Compress.hpp"
+#include "dc3dmCommon.hpp"
+
+namespace {
+/* DEV A specific rectangle-to-point Green's function implements this interface
+   for BrickMeshBemBuilder. */
+struct ImplGreensFn : public rmesh::GreensFn {
+  virtual ~ImplGreensFn() {}
+  /* DEV Compute B(rs,cs). Indexing starts at 1. B is preallocated.
+     Return true if all is well; false if there is an error in computing the
+     Green's function and you want compression to stop. */
+  virtual double Call(const rmesh::Rect& src, double rx, double ry) const = 0;
+};
+
+// Call Okada's routine dc3d for a rectangular dislocation in an elastic
+// half-space.
+class Dc3dGreensFn : public ImplGreensFn {
+public:
+  Dc3dGreensFn (const rmesh::Rect& domain, double depth_min, double dipdeg,
+                double mu, double nu, const double disl[3], size_t component)
+    : _domain(domain), _lp(mu, nu), _dipdeg(dipdeg), _component(component)
+  {
+    _cd = es::cosd(_dipdeg);
+    _sd = es::sind(_dipdeg);
+    _depth0 = depth_min + fabs(_sd) * _domain.dy;
+    _depth1 = depth_min;
+    _y_min = 0;
+    memcpy(&_disl[0], &disl[0], 3*sizeof(disl[0]));
+  }
+
+  virtual double Call (const rmesh::Rect& src, double rx, double ry) const {
+    double eta0, alpha;
+    eta0 = src.y - _domain.y;
+    alpha = eta0 / _domain.dy;
+    es::dc3::Elem es((1.0 - alpha) * _depth0 + alpha * _depth1, _dipdeg, _cd,
+                     _sd, 0.0, src.dx, 0.0, src.dy, src.x, _y_min + _cd * eta0);
+    double s[6];
+    { double obs[3], u[3], du[9];
+      eta0 = ry - _domain.y;
+      alpha = eta0 / _domain.dy;
+      obs[0] = rx;
+      obs[1] = _y_min + eta0 * _cd;
+      obs[2] = -((1.0 - alpha) * _depth0 + alpha * _depth1);
+      es::dc3::Dc3d(_lp, es, _disl, obs, u, du);
+      es::DuToS(_lp, du, s); }
+    // Can just uses source's vectors since we're on a plane.
+    return es::ProjectStress(s, es, _component);
+  }
+
+private:
+  rmesh::Rect _domain;
+  es::LameParms _lp;
+  double _depth0, _depth1, _dipdeg, _cd, _sd, _y_min, _disl[3];
+  size_t _component;
+};
+}
+
+namespace {
+using namespace rmesh;
+
+void PrintHelp () {
+  fprintf(stdout, _dc3dmCompress_PrintHelp_text_);
+  fprintf(stdout, _dc3dm_Header_text_);
+}
+
+struct Inputs {
+  string mesh_read_filename, build_read_filename, hm_write_filename,
+    hm_use_filename;
+  bool allow_overwrite;
+  size_t component, nthreads;
+  double disl[3], tol, mu, nu, depth_min, dipdeg;
+};
+
+bool CanRead(const string& fn) {
+  FILE* fid = fopen(fn.c_str(), "rb");
+  if (!fid) return false;
+  fclose(fid);
+  return true;
+}
+
+bool ProcessKvf (const KeyValueFile* kvf, Inputs& in, string& err) {
+  const string* s;
+  double d;
+
+#define rfn(fn) kvf_have_or_fail(GetString, #fn, s); in.fn = *s;
+  rfn(mesh_read_filename);
+  rfn(build_read_filename);
+  rfn(hm_write_filename);
+  in.hm_use_filename = "";
+  if (kvf->GetString("hm_use_filename", s)) in.hm_use_filename = *s;
+#undef rfn
+  fail_if_not(in.hm_write_filename != in.hm_use_filename,
+              "hm_write_filename can't be the same as hm_use_filename.");
+  in.allow_overwrite = false;
+  if (kvf->GetDouble("allow_overwrite", d)) in.allow_overwrite = (bool) d;
+  fail_if_not(in.allow_overwrite || !CanRead(in.hm_write_filename + ".hm"),
+              in.hm_write_filename + ".hm file exists; won't overwrite.");
+
+  in.component = 1;
+  if (kvf->GetDouble("component", d)) {
+    in.component = (size_t) d;
+    if (in.component > 2)
+      throw Exception("component must be 0 (strike), 1 (dip), or 2 (normal");
+  }
+
+  in.tol = 1e-5;
+  if (kvf->GetDouble("tol", d)) {
+    in.tol = d;
+    fail_if_not(in.tol > 0 && in.tol <= 0.1, "tol must be > 0 and <= 0.1.");
+  }
+
+  kvf_have_or_fail(GetDouble, "disl_strike", in.disl[0]);
+  kvf_have_or_fail(GetDouble, "disl_dip", in.disl[1]);
+  kvf_have_or_fail(GetDouble, "disl_tensile", in.disl[2]);
+  kvf_have_or_fail(GetDouble, "mu", in.mu);
+  fail_if_not(in.mu > 0, "mu must be > 0.");
+  kvf_have_or_fail(GetDouble, "nu", in.nu);
+  fail_if_not(in.nu < 1 && in.nu > 0, "nu must be > 0 and < 1.");
+
+  in.nthreads = 1;
+  if (kvf->GetDouble("nthreads", d)) {
+    if ((int) d <= 0) throw Exception("nthreads must be >= 1.");
+    in.nthreads = (size_t) d;
+    if (in.nthreads > 256)
+      cout << "Warning: nthreads > 256. That doesn't seem right. "
+           << "Proceeding anyway." << endl;
+  }
+
+  KeyValueFile* kvf_build = NewKeyValueFile();
+  fail_if_not(kvf_build->Read(in.build_read_filename + ".build"),
+              "Can't read " + in.build_read_filename + ".build");
+  fail_if_not(kvf_build->GetDouble("depth_min", in.depth_min) &&
+              kvf_build->GetDouble("dipdeg", in.dipdeg),
+              "Failed when reading " + in.build_read_filename +
+              ".build; should not happen.");
+  DeleteKeyValueFile(kvf_build);
+
+  return true;
+}
+
+void PrintProblemSetup (const Inputs& in) {
+  cout << "Reading from " << in.mesh_read_filename << " and "
+       << in.build_read_filename << endl
+       << "  and writing to " << in.hm_write_filename << "." << endl;
+  if (in.hm_use_filename.empty())
+    cout << "Not using an old H-matrix." << endl;
+  else
+    cout << "Using the old H-matrix " << in.hm_use_filename << endl;
+  omp_set_num_threads(in.nthreads);
+  int nthreads = omp_get_max_threads();
+  cout << "Using " << nthreads << " OpenMP threads (" << in.nthreads
+       << " threads requested)." << endl
+       << "H-matrix tolerance is ||G_true - G_approx||_F <= " << in.tol
+       << " ||G_true||_F." << endl
+       << "Physical setup: component " << in.component << "; " << endl
+       << "  (dip, strike, normal) dislocations (" << in.disl[0] << ", "
+       << in.disl[1] << ", " << in.disl[2] << "); " << endl
+       << "  mu " << in.mu << " nu " << in.nu << " depth_min " << in.depth_min
+       << " dip " << in.dipdeg << " degrees." << endl;
+}
+
+// Compute the influence of velocity boundary condition large rectangles on the
+// fault elements.
+void ComputeBcs (const Inputs& in, BrickMeshBemBuilder* bmb, const size_t nr)
+  throw (FileException) {
+  Matrix<double> B(nr, 4);
+  B.Zero();
+
+  omp_set_num_threads(in.nthreads);
+  for (size_t j = 0; j < 4; j++)
+#pragma omp parallel for
+    for (size_t i = 0; i < nr; i++)
+      B(i+1, j+1) = bmb->Call(i, (Dir::Enum) j);
+    
+  FILE* fid = fopen((in.hm_write_filename + ".bc").c_str(), "wb");
+  if (!fid)
+    throw FileException("Can't write file " + in.hm_write_filename + ".bc");
+  write(B.GetPtr(), 4*nr, fid);
+  fclose(fid);
+}
+
+// Implement hmmvp::Compress's Green's function interface.
+class HmmvpGreensFn : public hmmvp::GreensFn {
+public:
+  HmmvpGreensFn (BrickMeshBemBuilder* bmb) : _bmb(bmb) {}
+
+  virtual bool Call (const vector<UInt>& rs, const vector<UInt>& cs,
+                     double* B) {
+    for (size_t ic = 0, k = 0; ic < cs.size(); ic++)
+      for (size_t ir = 0; ir < rs.size(); ir++, k++)
+        B[k] = _bmb->Call(rs[ir] - 1, cs[ic] - 1);
+    return true;
+  }
+
+private:
+  BrickMeshBemBuilder* _bmb;
+};
+
+}
+
+int main (int argc, char** argv) {
+  if (argc != 2) { PrintHelp(); return -1; }
+
+  // Read the key-value file.
+  Inputs in;
+  if (!GetInputs(in, argv[1])) return -1;
+
+  // Make sure we can write the output before doing any calculations.
+  if (!TestFileWrite(in.hm_write_filename + ".bc") ||
+      !TestFileWrite(in.hm_write_filename + ".hm")) {
+    cerr << "Can't write " << in.hm_write_filename + ".*" << endl;
+    return -1;
+  }
+
+  PrintProblemSetup(in);
+
+  rmesh::RectMeshUnstruct* rmu;
+  rmesh::RmuAnalyzer* ra;
+  rmesh::MeshAnalyzer* ma;
+  rmesh::LinearInterpolatorMatrix* lim;
+  ImplGreensFn* igf;
+  rmesh::BrickMeshBemBuilder* bmb;
+  hmmvp::Hd* hd;
+  HmmvpGreensFn* hgf;
+  hmmvp::Compressor* c;
+
+  // Read in the mesh that dc3dmMesh made.
+  run_and_exit_if_Exception
+    (rmu = rmesh::NewRectMeshUnstruct(in.mesh_read_filename + ".rmu");,
+     "reading the RectMeshUnstruct (" + in.mesh_read_filename + ".rmu)",
+     lbl_nothing);
+
+  // Read in the .ra, .bmb, and .hd files from dc3dBuild and construct the other
+  // dc3dBuild objects.
+  run_and_exit_if_Exception
+    (ra = NewRmuAnalyzer(rmu, in.build_read_filename + ".ra");,
+     "reading the RmuAnalyzer (" + in.build_read_filename + ".ra)",
+     lbl_rmu);
+  run_and_exit_if_Exception
+    (ma = new rmesh::MeshAnalyzer(rmu, ra);,
+     "constructing the MeshAnalyzer",
+     lbl_ra);
+  run_and_exit_if_Exception
+    (lim = new rmesh::LinearInterpolatorMatrix(ma);,
+     "constructing the LinearInterpolatorMatrix",
+     lbl_ma);
+  //todo If there are other Green's functions available, this part needs to be
+  // made into a switch.
+  run_and_exit_if_Exception
+    (igf = new Dc3dGreensFn(ma->GetDomain(), in.depth_min, in.dipdeg, in.mu,
+                            in.nu, in.disl, in.component);,
+     "constructing the BrickMeshBemBuilder Green's function",
+     lbl_lim);
+  run_and_exit_if_Exception
+    (bmb = rmesh::NewBrickMeshBemBuilder(igf, ma, lim,
+                                         in.build_read_filename + ".bmb");,
+     "reading the BrickMeshBemBuilder (" + in.build_read_filename + ".bmb)",
+     lbl_igf);
+  run_and_exit_if_Exception
+    (hd = hmmvp::NewHd(in.build_read_filename + ".hd");,
+     "reading the Hd (" + in.build_read_filename + ".hd)",
+     lbl_bmb);
+
+  hgf = new HmmvpGreensFn(bmb);
+
+  run_and_exit_if_Exception
+    (c = hmmvp::NewCompressor(hd, hgf, in.hm_write_filename + ".hm");,
+     "constructing the Compressor",
+     lbl_hgf);
+  c->SetOutputLevel(1);
+  c->SetTolMethod(hmmvp::Compressor::tm_Bfro);
+  c->SetTol(in.tol);
+  bmb->SetOmpNthreads(in.nthreads);
+  c->SetOmpNthreads(in.nthreads);
+  if (!in.hm_use_filename.empty())
+    run_and_exit_if_Exception
+      (c->UseHmatFile(in.hm_use_filename);,
+       "using the old H-matrix " + in.hm_use_filename + ".hm",
+       lbl_c);
+  if (c->HaveOldHmat())
+    c->SetBfroEstimate(c->GetOldHmatBfro());
+  else {
+    bmb->UsePoorQuality();
+    run_and_exit_if_Exception
+      (c->SetBfroEstimate(c->EstimateBfro());,
+       "estimating ||B||_F",
+       lbl_c);
+    bmb->UseFullQuality();
+  }
+  run_and_exit_if_Exception
+    (ComputeBcs(in, bmb, ma->nr());,
+     "computing the boundary conditions",
+     lbl_c);
+  run_and_exit_if_Exception
+    (c->Compress();,
+     "compressing",
+     lbl_c);
+
+ lbl_c:
+  hmmvp::DeleteCompressor(c);
+ lbl_hgf:
+  delete hgf;
+  hmmvp::DeleteHd(hd);
+ lbl_bmb:
+  DeleteBrickMeshBemBuilder(bmb);
+ lbl_igf:
+  delete igf;
+ lbl_lim:
+  delete lim;
+ lbl_ma:
+  delete ma;
+ lbl_ra:
+  rmesh::DeleteRmuAnalyzer(ra);
+ lbl_rmu:
+  rmesh::DeleteRectMeshUnstruct(rmu);
+ lbl_nothing:  
+
+  return 0;
+}

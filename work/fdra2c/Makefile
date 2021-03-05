@@ -4,11 +4,11 @@
 #   make mode=s opt=-O
 #     serial with no MPI dependencies
 # Change these lines to fit your system.
-HMMVPINC = -I /home/camcat/code/ambrad
-HMMVPLIB = /home/camcat/code/hmmvp/lib/libhmmvp_$(mode).a
-UTILINC = -I /home/camcat/code/ambrad
-UTILLIB = /home/camcat/code/ambrad/util/lib/libutil_$(mode).a
-BLASLIB = /usr/lib/x86_64-linux-gnu/libblas.so.3 #/home/camcat/code/lib/lapack-3.2.1/libblas.a
+HMMVPINC = -I external
+HMMVPLIB = external/hmmvp/lib/libhmmvp_$(mode).a
+UTILINC = -I external
+UTILLIB = external/util/lib/libutil_$(mode).a
+BLASLIB = /usr/lib/x86_64-linux-gnu/libblas.so.3
 
 CPP = g++
 MPICPP = mpic++
@@ -25,7 +25,7 @@ INCLUDE = -I src -I include $(HMMVPINC) $(UTILINC)
 LIBS = $(HMMVPLIB) $(UTILLIB) $(BLASLIB) -lgfortran -lgomp
 LIBDIRS =
 OPTFLAGS = $(opt)
-CPPFLAGS = -no-pie $(OPTFLAGS) #-DANALYZE_CODE
+CPPFLAGS = $(OPTFLAGS) #-Wall
 LDFLAGS = $(OPTFLAGS)
 
 .SUFFIXES:

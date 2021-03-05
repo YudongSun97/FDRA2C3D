@@ -1,0 +1,46 @@
+#ifndef INCLUDE_UTIL_KEYVALUEFILE
+#define INCLUDE_UTIL_KEYVALUEFILE
+
+#include "util/include/Exception.hpp"
+#include "util/include/Matrix.hpp"
+
+namespace util {
+using namespace std;
+
+typedef Matrix<double> Matd;
+
+class KeyValueFile {
+private:
+  virtual ~KeyValueFile();
+
+public:
+  enum ValueType { vt_none, vt_string, vt_Matd };
+
+  void AddString(const string& key, const string& str);
+  void AddMatd(const string& key, const Matd& m);
+  // Convenience routine to add a 1x1 matrix.
+  void AddDouble(const string& key, double d);
+
+  ValueType GetType(const string& key) const;
+  bool GetString(const string& key, const string*& s) const;
+  bool GetMatd(const string& key, const Matd*& m) const;
+  // Convenience routine to get a 1x1 matrix. Fails if the matrix isn't 1x1.
+  bool GetDouble(const string& key, double& d) const;
+    
+  bool Write(const string& filename) const;
+  bool Write(ofstream& os) const;
+
+  bool Read(const string& filename);
+  bool Read(ifstream& is);
+
+private:
+  KeyValueFile();
+  KeyValueFile(const KeyValueFile&);
+  KeyValueFile& operator=(const KeyValueFile&);
+};
+
+KeyValueFile* NewKeyValueFile();
+void DeleteKeyValueFile(KeyValueFile* kvf);
+}
+
+#endif

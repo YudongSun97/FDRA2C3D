@@ -1,0 +1,47 @@
+#ifndef INCLUDE_HMMVP_HMATIO
+#define INCLUDE_HMMVP_HMATIO
+
+#include "util/include/Defs.hpp"
+#include "hmmvp/include/Hmat.hpp"
+
+namespace hmmvp {
+
+typedef int64 FileBlint;
+
+void ReadHmatHeader(FILE* fid, Blint& m, Blint& n, Blint& realp, Blint& nb,
+                    double& tol, Blint* rerr_method = NULL)
+  throw (FileException);
+
+void ReadHmatHeader(FILE* fid, Blint& m, Blint& n, Blint& realp, Blint& nb,
+                    double& tol, vector<FileBlint>& p, vector<FileBlint>& q,
+                    Blint* rerr_method = NULL)
+  throw (FileException);
+
+void ReadHmatBlockInfo(FILE* fid, Blint realp, Blint& r0, Blint& c0, Blint& m,
+                       Blint& n, Blint& rank)
+  throw (FileException);
+
+template<typename Real>
+void ReadHmatBlockInfo(FILE* fid, Blint& r0, Blint& c0, Blint& m, Blint& n,
+                       Blint& rank)
+  throw (FileException);
+
+// Return the size and precision of the H-matrix stored in the file
+// filename. realp is 1 if float, 2 if double.
+void HmatInfo(const string& filename, Blint& m, Blint& n, Blint& realp,
+              Blint& nb, double& tol)
+  throw (FileException);
+
+template<typename T>
+void ReadHmatBlock(FILE* fid, Blint& r0, Blint& c0, Blint& m, Blint& n,
+                   Blint& rank, T*& B, T*& U, T*& Vt)
+  throw (FileException);
+
+template<typename T>
+unsigned char GetPrecCode () { return sizeof(T) == sizeof(float) ? 1 : 2; }
+
+}
+
+#include "HmatIo_inl.hpp"
+
+#endif

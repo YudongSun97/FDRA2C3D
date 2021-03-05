@@ -1,0 +1,19 @@
+#include <stdio.h>
+#include <iostream>
+#include "util/include/Util.hpp"
+#include "util/include/KeyValueFile.hpp"
+//#include "util/include/RectMeshUnstruct.hpp"
+#include "util/src/RectMeshUnstruct_pri.hpp"
+#include "dc3dmCommon.hpp"
+
+namespace {
+void PrintHelp () {
+  fprintf(stdout, _dc3dmBuild_PrintHelp_text_);
+  fprintf(stdout, _dc3dm_Header_text_);
+}
+
+struct Inputs {
+
+};
+
+}

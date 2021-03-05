@@ -1,0 +1,640 @@
+
+BrickMeshBemBuilder.cpp,3535
+namespace util 15,342
+namespace rmesh util::rmesh16,359
+  void PrintMesh util::rmesh::PrintMesh20,413
+  void MakeMeshArray util::rmesh::MakeMeshArray37,940
+  ostream& operator<< util::rmesh::operator<<52,1380
+void MeshAnalyzer::Init 59,1541
+int MeshAnalyzer::UnitDx 88,2368
+inline int MeshAnalyzer::UnitDy 96,2591
+Distance 105,2850
+Distance 117,3290
+inline Rect& MeshAnalyzer::TranslateRect 124,3448
+inline Rect& MeshAnalyzer::TranslateRect 132,3642
+Call 140,3824
+RmeshBfSearcher::RmeshBfSearcher 193,5611
+void RmeshBfSearcher::Clear 203,6016
+ostream& operator<< 215,6315
+FindRectIdsByDist 221,6466
+FindRectsByHops 278,8232
+  struct NbrhdsBuilder ::NbrhdsBuilder309,9073
+    const MeshAnalyzer& ma;::NbrhdsBuilder::ma310,9098
+    RmeshBfSearcher bfs;::NbrhdsBuilder::bfs311,9126
+    NbrhdsBuilder(::NbrhdsBuilder::NbrhdsBuilder312,9151
+  void SetMinNhszs ::SetMinNhszs316,9261
+  void GetRcvNbrhd ::GetRcvNbrhd337,10155
+  void GetSrcNbrhd ::GetSrcNbrhd367,11306
+  void BuildNbrhds ::BuildNbrhds373,11457
+MeshAnalyzer::MeshAnalyzer 411,12767
+GetRelation 416,12920
+BrickMeshBemBuilder 432,13365
+BrickMeshBemBuilder 455,14179
+BrickMeshBemBuilder::~BrickMeshBemBuilder 468,14630
+void BrickMeshBemBuilder::Serialize 470,14679
+namespace ser 479,14911
+  void Serialize ser::Serialize480,14927
+  void Deserialize ser::Deserialize489,15134
+  void Serialize ser::Serialize498,15332
+  void Deserialize ser::Deserialize506,15498
+  void Serialize ser::Serialize514,15656
+  void Deserialize ser::Deserialize521,15799
+void BrickMeshBemBuilder::Serialize 529,15937
+void BrickMeshBemBuilder::Deserialize 548,16441
+size_t BrickMeshBemBuilder::GetCtrNgfs 575,17096
+size_t BrickMeshBemBuilder::GetCtrNcalls 576,17166
+void BrickMeshBemBuilder::BuildBdyData 578,17241
+#define do1 601,18072
+#define do2 602,18116
+#undef do1611,18537
+#undef do2612,18548
+GetPrimarySrcRect 651,19906
+namespace bdy 667,20294
+  struct Key bdy::Key672,20523
+    double xi,bdy::Key::xi673,20538
+    double xi, yi;bdy::Key::yi673,20538
+    Rect r;bdy::Key::r674,20557
+    TriTag in;bdy::Key::in675,20569
+    Key(bdy::Key::Key677,20585
+  bool operator< bdy::operator<681,20702
+  class Accumulator bdy::Accumulator693,21060
+    map<bdy::Accumulator::map698,21215
+    map<Key, double> _ks;bdy::Accumulator::_ks698,21215
+  void Accumulator::Accumulate bdy::Accumulator::Accumulate701,21247
+  void Accumulator::Finalize bdy::Accumulator::Finalize711,21589
+inline void BrickMeshBemBuilder::Work::Clear 728,22138
+GetWeightedSourcesSni 732,22280
+GetWeightedSources 784,24048
+GetWeightedSources 827,25723
+inline double BrickMeshBemBuilder::Call_const 851,26432
+double BrickMeshBemBuilder::Call 905,28491
+namespace perimg 908,28583
+  class Caller perimg::Caller909,28602
+    Caller(perimg::Caller::Caller911,28629
+    double B perimg::Caller::B916,28827
+    void Call perimg::Caller::Call918,28865
+    const MeshAnalyzer& _ma;perimg::Caller::_ma927,29033
+    const GreensFn& _gf;perimg::Caller::_gf928,29062
+    size_t* _ctr;perimg::Caller::_ctr929,29087
+    Rect _psr;perimg::Caller::_psr930,29105
+    double _B;perimg::Caller::_B931,29120
+    double _rx,perimg::Caller::_rx932,29135
+    double _rx, _ry;perimg::Caller::_ry932,29135
+CallOnPeriodicImages 937,29193
+int BrickMeshBemBuilder::SetOmpNthreads 965,30028
+double BrickMeshBemBuilder::Call 974,30204
+NewBrickMeshBemBuilder 990,30720
+NewBrickMeshBemBuilder 996,30998
+void DeleteBrickMeshBemBuilder 1001,31227
+
+BrickMeshBemBuilder_pri.hpp,6513
+#define INCLUDE_UTIL_BRICKMESHBEMBUILDER_PRI2,45
+namespace util 8,217
+namespace rmesh util::rmesh9,234
+  class MeshAnalyzer util::rmesh::MeshAnalyzer12,276
+    const Rect& GetDomain(util::rmesh::MeshAnalyzer::GetDomain16,380
+    const Boundaries& GetBoundaries(util::rmesh::MeshAnalyzer::GetBoundaries18,450
+    const vector<Rect>& GetRects(util::rmesh::MeshAnalyzer::GetRects20,533
+    int GetRectId(util::rmesh::MeshAnalyzer::GetRectId22,609
+    const vector<RectId>& GetNbrs(util::rmesh::MeshAnalyzer::GetNbrs24,688
+    Dir::Enum GetBoundaryDir(util::rmesh::MeshAnalyzer::GetBoundaryDir25,768
+    void GetCornerBC(util::rmesh::MeshAnalyzer::GetCornerBC27,856
+    void Distance(util::rmesh::MeshAnalyzer::Distance29,989
+    const Matrix<double>& GetX(util::rmesh::MeshAnalyzer::GetX33,1144
+    const Matrix<RectId>& GetTri(util::rmesh::MeshAnalyzer::GetTri34,1207
+    bool GetTriTag(util::rmesh::MeshAnalyzer::GetTriTag35,1274
+    void GetTriVertices(util::rmesh::MeshAnalyzer::GetTriVertices37,1376
+    size_t nr(util::rmesh::MeshAnalyzer::nr41,1549
+    size_t nx(util::rmesh::MeshAnalyzer::nx42,1587
+    const vector<size_t>& Nc(util::rmesh::MeshAnalyzer::Nc44,1669
+    double ux(util::rmesh::MeshAnalyzer::ux46,1745
+    double uy(util::rmesh::MeshAnalyzer::uy47,1783
+    const Matrix<Dir::Enum>& GetTriBdy(util::rmesh::MeshAnalyzer::GetTriBdy57,2181
+    const RectMeshUnstruct* _rmu;util::rmesh::MeshAnalyzer::_rmu60,2269
+    const RmuAnalyzer* _ra;util::rmesh::MeshAnalyzer::_ra61,2303
+    size_t _nr,util::rmesh::MeshAnalyzer::_nr62,2331
+    size_t _nr, _nx;util::rmesh::MeshAnalyzer::_nx62,2331
+    double _ux,util::rmesh::MeshAnalyzer::_ux64,2375
+    double _ux, _uy;util::rmesh::MeshAnalyzer::_uy64,2375
+    vector<size_t> _nc;util::rmesh::MeshAnalyzer::_nc67,2527
+    int _bem_col[util::rmesh::MeshAnalyzer::_bem_col68,2551
+  class InterpolatorMatrix util::rmesh::InterpolatorMatrix78,2784
+    InterpolatorMatrix(util::rmesh::InterpolatorMatrix::InterpolatorMatrix80,2823
+    virtual ~InterpolatorMatrix(util::rmesh::InterpolatorMatrix::~InterpolatorMatrix81,2884
+    const MeshAnalyzer& _ma;util::rmesh::InterpolatorMatrix::_ma100,3580
+  class GreensFn util::rmesh::GreensFn104,3673
+    virtual ~GreensFn(util::rmesh::GreensFn::~GreensFn106,3702
+  class LinearInterpolatorMatrix util::rmesh::LinearInterpolatorMatrix113,3924
+    LinearInterpolatorMatrix(util::rmesh::LinearInterpolatorMatrix::LinearInterpolatorMatrix115,3997
+    virtual size_t GetNbrTriLayersInSupport(util::rmesh::LinearInterpolatorMatrix::GetNbrTriLayersInSupport117,4079
+  class RmeshBfSearcher util::rmesh::RmeshBfSearcher134,4942
+    size_t GetSupportsStartIdx(util::rmesh::RmeshBfSearcher::GetSupportsStartIdx150,5586
+    const vector<RectId>& GetAll(util::rmesh::RmeshBfSearcher::GetAll151,5667
+    const vector<RectId>& GetSupport(util::rmesh::RmeshBfSearcher::GetSupport152,5724
+    const MeshAnalyzer& _ma;util::rmesh::RmeshBfSearcher::_ma155,5803
+    vector<RectId> _rs,util::rmesh::RmeshBfSearcher::_rs156,5832
+    vector<RectId> _rs, _supports;util::rmesh::RmeshBfSearcher::_supports156,5832
+    vector<RectId> _discarded;util::rmesh::RmeshBfSearcher::_discarded157,5867
+    vector<bool> _in;util::rmesh::RmeshBfSearcher::_in158,5915
+  enum RcvSrcRelation util::rmesh::RcvSrcRelation165,6091
+  enum RcvSrcRelation { rsr_Normal util::rmesh::RcvSrcRelation::rsr_Normal165,6091
+  enum RcvSrcRelation { rsr_Normal = 0, rsr_InterpOnly,util::rmesh::RcvSrcRelation::rsr_InterpOnly165,6091
+  enum RcvSrcRelation { rsr_Normal = 0, rsr_InterpOnly, rsr_InNbrhd util::rmesh::RcvSrcRelation::rsr_InNbrhd165,6091
+  struct RcvNbrhd util::rmesh::RcvNbrhd167,6163
+    RectId id;util::rmesh::RcvNbrhd::id168,6183
+    size_t nhsz;util::rmesh::RcvNbrhd::nhsz169,6214
+    vector<RectId> ins;util::rmesh::RcvNbrhd::ins171,6302
+    RcvSrcRelation bdy_relations[util::rmesh::RcvNbrhd::bdy_relations172,6326
+    size_t nc;util::rmesh::RcvNbrhd::nc173,6363
+  struct SrcNbrhd util::rmesh::SrcNbrhd176,6427
+    RectId id;util::rmesh::SrcNbrhd::id177,6447
+    vector<RectId> ns;util::rmesh::SrcNbrhd::ns178,6462
+    vector<RectId> fbps;util::rmesh::SrcNbrhd::fbps179,6499
+    vector<double> fbps_wts;util::rmesh::SrcNbrhd::fbps_wts180,6543
+  struct BdyData util::rmesh::BdyData183,6578
+    RectId id;util::rmesh::BdyData::id184,6597
+    vector<size_t> bdy_pts;util::rmesh::BdyData::bdy_pts186,6665
+    Rect r;util::rmesh::BdyData::r187,6693
+  class BrickMeshBemBuilder util::rmesh::BrickMeshBemBuilder190,6711
+    void UsePoorQuality(util::rmesh::BrickMeshBemBuilder::UsePoorQuality205,7350
+    void UseFullQuality(util::rmesh::BrickMeshBemBuilder::UseFullQuality206,7403
+    struct Work util::rmesh::BrickMeshBemBuilder::Work219,7841
+      vector<double> xi,util::rmesh::BrickMeshBemBuilder::Work::xi220,7859
+      vector<double> xi, yi,util::rmesh::BrickMeshBemBuilder::Work::yi220,7859
+      vector<double> xi, yi, zi;util::rmesh::BrickMeshBemBuilder::Work::zi220,7859
+      vector<Rect> srcs;util::rmesh::BrickMeshBemBuilder::Work::srcs221,7892
+      vector<TriTag> in;util::rmesh::BrickMeshBemBuilder::Work::in222,7917
+    const GreensFn& _gf;util::rmesh::BrickMeshBemBuilder::_gf230,8130
+    const MeshAnalyzer& _ma;util::rmesh::BrickMeshBemBuilder::_ma231,8155
+    const InterpolatorMatrix& _im;util::rmesh::BrickMeshBemBuilder::_im232,8184
+    bool _any_periodic;util::rmesh::BrickMeshBemBuilder::_any_periodic233,8219
+    size_t _nr,util::rmesh::BrickMeshBemBuilder::_nr234,8243
+    size_t _nr, _nx;util::rmesh::BrickMeshBemBuilder::_nx234,8243
+    vector<RcvNbrhd> _rns;util::rmesh::BrickMeshBemBuilder::_rns235,8264
+    vector<SrcNbrhd> _sns;util::rmesh::BrickMeshBemBuilder::_sns236,8291
+    BdyData _bdys[util::rmesh::BrickMeshBemBuilder::_bdys237,8318
+    size_t _n_per_layers;util::rmesh::BrickMeshBemBuilder::_n_per_layers238,8372
+    bool _full_quality;util::rmesh::BrickMeshBemBuilder::_full_quality239,8398
+    mutable vector<Work> _w;util::rmesh::BrickMeshBemBuilder::_w241,8423
+    mutable struct Counter util::rmesh::BrickMeshBemBuilder::Counter242,8480
+      size_t ngfs,util::rmesh::BrickMeshBemBuilder::Counter::ngfs243,8509
+      size_t ngfs, ncalls;util::rmesh::BrickMeshBemBuilder::Counter::ncalls243,8509
+      Counter(util::rmesh::BrickMeshBemBuilder::Counter::Counter244,8536
+    } _ctr;util::rmesh::BrickMeshBemBuilder::_ctr245,8576
+
+CodeAnalysis.cpp,102
+namespace util 3,42
+  namespace Ca util::Ca4,59
+    util::Timer* GetTimer(util::Ca::GetTimer6,81
+
+Defs_pri.hpp,524
+#define INCLUDE_UTIL_DEFS_PRI2,30
+namespace util 7,115
+  typedef size_t UInt;util::UInt9,133
+  typedef Matrix<double> Matd;util::Matd10,156
+  typedef Matrix<int> Mati;util::Mati11,187
+  typedef std::vector<double> Vecd;util::Vecd12,215
+  typedef std::vector<UInt> Vecui;util::Vecui13,251
+namespace util 19,343
+  typedef int64_t int64;util::int6420,360
+  typedef int32_t int32;util::int3221,385
+namespace util 24,419
+  typedef long long int int64;util::int6425,436
+  typedef int int32;util::int3226,467
+
+Elastostatics.cpp,555
+namespace util 5,69
+  namespace es util::es6,86
+    namespace dc3 util::es::dc37,103
+      Elem::Elem(util::es::dc3::Elem::Elem9,124
+      Elem::Elem(util::es::dc3::Elem::Elem17,387
+      Set(util::es::dc3::Set23,644
+      static bool IsAscending(util::es::dc3::IsAscending41,1283
+      void PlanarTensorMeshToElemsutil::es::dc3::PlanarTensorMeshToElems49,1507
+      void RectMeshUnstructToElemsutil::es::dc3::RectMeshUnstructToElems85,2850
+    void DuToS(util::es::DuToS111,3805
+    void ProjectStressutil::es::ProjectStress124,4197
+
+KeyValueFile.cpp,1975
+namespace util 8,135
+  typedef int64 kvf_int;util::kvf_int10,153
+  KeyValueFile* NewKeyValueFile(util::NewKeyValueFile12,179
+  void DeleteKeyValueFile(util::DeleteKeyValueFile17,253
+  static void FreeMap(util::FreeMap23,346
+  static inline void EraseIfNeeded(util::EraseIfNeeded31,544
+  static inline void Insert(util::Insert41,780
+  static inline void CopyAndInsertutil::CopyAndInsert47,925
+  KeyValueFile::~KeyValueFile(util::KeyValueFile::~KeyValueFile54,1069
+  void KeyValueFile::AddType(util::KeyValueFile::AddType60,1156
+  void KeyValueFile::AddString(util::KeyValueFile::AddString68,1411
+  void KeyValueFile::AddString(util::KeyValueFile::AddString73,1526
+  void KeyValueFile::AddMatd(util::KeyValueFile::AddMatd80,1695
+  void KeyValueFile::AddDouble(util::KeyValueFile::AddDouble85,1798
+  void KeyValueFile::AddMatd(util::KeyValueFile::AddMatd92,1937
+  KeyValueFile::ValueType KeyValueFile::GetType(util::KeyValueFile::GetType99,2092
+  static inline bool GetValueutil::GetValue107,2328
+  bool KeyValueFile::GetString(util::KeyValueFile::GetString119,2595
+  bool KeyValueFile::GetMatd(util::KeyValueFile::GetMatd124,2718
+  bool KeyValueFile::GetDouble(util::KeyValueFile::GetDouble129,2835
+  static bool WriteCode(util::WriteCode137,3031
+  static bool ReadCode(util::ReadCode142,3133
+  static bool WriteString(util::WriteString147,3227
+  static bool ReadStringAndTestEof(util::ReadStringAndTestEof154,3425
+  static bool WriteInts(util::WriteInts166,3765
+  static bool ReadInts(util::ReadInts173,3991
+  static bool WriteArrayData(util::WriteArrayData182,4243
+  static bool ReadArrayData(util::ReadArrayData189,4425
+  bool KeyValueFile::Write(util::KeyValueFile::Write194,4557
+  bool KeyValueFile::Write(util::KeyValueFile::Write203,4773
+  bool KeyValueFile::Read(util::KeyValueFile::Read228,5514
+  static inline bool IsCode(util::IsCode237,5720
+  bool KeyValueFile::Read(util::KeyValueFile::Read242,5840
+
+KeyValueFile_pri.hpp,868
+#define INCLUDE_UTIL_KEYVALUEFILE_PRI2,38
+namespace util 10,178
+  typedef Matrix<double> Matd;util::Matd13,219
+  class KeyValueFile util::KeyValueFile15,251
+    enum ValueType util::KeyValueFile::ValueType17,284
+    enum ValueType { vt_none,util::KeyValueFile::ValueType::vt_none17,284
+    enum ValueType { vt_none, vt_string,util::KeyValueFile::ValueType::vt_string17,284
+    enum ValueType { vt_none, vt_string, vt_Matd util::KeyValueFile::ValueType::vt_Matd17,284
+    KeyValueFile(util::KeyValueFile::KeyValueFile19,337
+    map<util::KeyValueFile::map38,944
+    map<string, string*> _s_string;util::KeyValueFile::_s_string38,944
+    map<util::KeyValueFile::map39,980
+    map<string, Matd*> _s_Matd;util::KeyValueFile::_s_Matd39,980
+    map<util::KeyValueFile::map40,1012
+    map<string, ValueType> _s_vt;util::KeyValueFile::_s_vt40,1012
+
+Mpi.cpp,677
+namespace util 8,82
+namespace mpi util::mpi9,99
+static void MPI_Handler_Crash util::mpi::MPI_Handler_Crash12,132
+void Init 21,327
+void Finalize 33,561
+int GetNproc 41,630
+int Pid 52,762
+void Barrier 63,908
+int Root 71,989
+bool AmRoot 76,1018
+bool AmTPid0(85,1108
+bool IsTrue 87,1181
+bool AllOk 99,1331
+int Waitall 110,1485
+int Waitany 119,1635
+int Test 129,1818
+int Request_free 139,1976
+int Parfor 148,2096
+ArraySegmenter::ArraySegmenter 239,5382
+void ArraySegmenter::ApportionN 243,5448
+void ArraySegmenter::ApportionToMe 261,5791
+void ArraySegmenter::GetIndexBounds 282,6283
+int ArraySegmenter::GetOffset 289,6454
+int ArraySegmenter::GetN 295,6542
+
+RectMeshUnstruct.cpp,9573
+namespace util 13,273
+namespace rmesh util::rmesh14,290
+struct PointT util::rmesh::PointT21,462
+  T x,util::rmesh::PointT::x22,478
+  T x, y;util::rmesh::PointT::y22,478
+  PointT(util::rmesh::PointT::PointT23,488
+  PointT(util::rmesh::PointT::PointT24,519
+  void Set util::rmesh::PointT::Set25,558
+class PointLineSegT 29,627
+  PointLineSegT PointLineSegT::PointLineSegT31,657
+  PointLineSegT(PointLineSegT::PointLineSegT32,679
+  PointT<T>& p PointLineSegT::p33,757
+  PointT<T>& q PointLineSegT::q34,790
+  const PointT<T>& p PointLineSegT::p35,823
+  const PointT<T>& q PointLineSegT::q36,868
+  PointT<T> _p,PointLineSegT::_p40,1029
+  PointT<T> _p, _q;PointLineSegT::_q40,1029
+class PointRectT 44,1074
+  PointRectT PointRectT::PointRectT46,1101
+  PointRectT PointRectT::PointRectT47,1120
+  PointRectT PointRectT::PointRectT49,1217
+  PointRectT PointRectT::PointRectT51,1334
+  PointRectT PointRectT::PointRectT53,1420
+  PointT<T>& ll PointRectT::ll55,1538
+  PointT<T>& ur PointRectT::ur56,1595
+  const PointT<T>& ll PointRectT::ll57,1653
+  const PointT<T>& ur PointRectT::ur58,1700
+  static bool Intersect PointRectT::Intersect60,1748
+  PointT<T> _ll,PointRectT::_ll68,2183
+  PointT<T> _ll, _ur;PointRectT::_ur68,2183
+  void SetCorners PointRectT::SetCorners70,2206
+typedef PointT<double> Point;76,2349
+typedef PointLineSegT<int> PointLineSeg;77,2379
+typedef PointRectT<double> PointRect;78,2420
+std::ostream& operator<< 81,2480
+inline bool operator== operator==88,2700
+Distance 93,2857
+Distance 107,3265
+void RectT<T>::Distance Distance120,3597
+Intersect 128,3840
+const double RectOpts::max_aspect_ratio 161,5360
+RectOpts::RectOpts 162,5407
+void RectOpts::Serialize 163,5460
+void RectOpts::Deserialize 164,5532
+void DeserializeRect 166,5600
+void SerializeRect 167,5666
+void InitRect 168,5737
+bool operator< 170,5802
+GetSurroundingPoints 179,5996
+Call 186,6210
+TensorMeshLinInterpRF 202,6784
+const Matrix<double>& TensorMeshLinInterpRF::GetX 211,7048
+const Matrix<double>& TensorMeshLinInterpRF::GetY 212,7122
+const Matrix<double>& TensorMeshLinInterpRF::GetF 213,7196
+namespace getmin 215,7271
+  inline size_t Low getmin::Low216,7290
+  inline size_t High getmin::High224,7519
+double TensorMeshLinInterpRF::GetMin 231,7695
+GetMin 250,8489
+RectMeshUnstruct::QuadTree::QuadTree 263,8772
+RectMeshUnstruct::QuadTree::QuadTree 267,8859
+RectMeshUnstruct::QuadTree::~QuadTree 271,8950
+void RectMeshUnstruct::QuadTree::Serialize 278,9093
+void RectMeshUnstruct::QuadTree::Deserialize 289,9351
+namespace split 307,9765
+  bool ShouldSplit split::ShouldSplit311,9989
+void RectMeshUnstruct::QuadTree::Split 333,10679
+Split 344,11101
+void RectMeshUnstruct::QuadTree::PushBackRects 355,11353
+inline int RectMeshUnstruct::QuadTree::GetRectId 363,11541
+void RectMeshUnstruct::QuadTree::Refine 378,12043
+  void BreakUpDomain ::BreakUpDomain389,12290
+RectMeshUnstruct 416,13183
+RectMeshUnstruct::RectMeshUnstruct 439,13956
+RectMeshUnstruct::~RectMeshUnstruct 448,14183
+RectMeshUnstruct* NewRectMeshUnstruct 451,14284
+RectMeshUnstruct* NewRectMeshUnstruct 454,14469
+void DeleteRectMeshUnstruct 457,14599
+void RectMeshUnstruct::Serialize 459,14668
+void RectMeshUnstruct::Serialize 468,14901
+void RectMeshUnstruct::Deserialize 480,15225
+const Rect& RectMeshUnstruct::GetDomain 504,15839
+const vector<Rect>& RectMeshUnstruct::GetRects 506,15909
+template<typename RectType,514,16103
+inline void PositionToIndices 515,16143
+int RectMeshUnstruct::GetRectId 525,16416
+void RectMeshUnstruct::Refine 538,16860
+  void WriteTris ::WriteTris549,17133
+inline void GetUnitCellSize 567,17569
+RmuAnalyzer::RmuAnalyzer 579,17843
+RmuAnalyzer::RmuAnalyzer 656,20221
+RmuAnalyzer::~RmuAnalyzer 667,20605
+void RmuAnalyzer::Serialize 669,20638
+void RmuAnalyzer::Serialize 677,20860
+void RmuAnalyzer::Deserialize 705,21482
+RmuAnalyzer* NewRmuAnalyzer 737,22234
+RmuAnalyzer* NewRmuAnalyzer 739,22349
+void DeleteRmuAnalyzer 743,22527
+Dir::Enum RmuAnalyzer::OnWhichBoundary 748,22644
+Dir::Enum RmuAnalyzer::OnWhichBoundary 764,23409
+inline int RmuAnalyzer::UnitDx 782,24205
+inline int RmuAnalyzer::UnitDy 784,24292
+inline int RmuAnalyzer::UnitX 786,24379
+inline int RmuAnalyzer::UnitY 787,24455
+inline double RmuAnalyzer::DomainX 788,24531
+inline double RmuAnalyzer::DomainY 790,24613
+inline bool InsideRect 793,24696
+inline bool InsideRect 796,24825
+inline bool NoPeriodic 802,25028
+bool RmuAnalyzer::MapToDomain 811,25500
+MapToPeriodic 850,26614
+inline void RmuAnalyzer::MapToPeriodic 867,27099
+GetPeriodicTri2 884,27628
+const Matrix<Dir::Enum>& RmuAnalyzer::GetTriBdy 898,28057
+inline void RmuAnalyzer::MapToPeriodicWithTriAnchoredAt 902,28240
+Dir::Enum DirectionToXY 912,28562
+bool RmuAnalyzer::MapToCover 924,28945
+Distance 948,29612
+  inline Rect& TranslateRect ::TranslateRect1031,32176
+  inline Point& TranslatePoint ::TranslatePoint1038,32337
+Distance 1047,32526
+namespace bdy 1066,33223
+  struct BdyPoint bdy::BdyPoint1067,33239
+    int x,bdy::BdyPoint::x1068,33259
+    int x, y;bdy::BdyPoint::y1068,33259
+    RectId id;bdy::BdyPoint::id1069,33273
+    BdyPoint(bdy::BdyPoint::BdyPoint1070,33288
+    BdyPoint bdy::BdyPoint::BdyPoint1071,33327
+    void Set bdy::BdyPoint::Set1072,33391
+  bool operator< bdy::operator<1075,33469
+  bool AddBdyPointIfNew bdy::AddBdyPointIfNew1081,33647
+  inline size_t GatherBdyPointsbdy::GatherBdyPoints1102,34269
+#define aepin(1106,34434
+#undef aepin1131,35593
+#undef rdx1132,35606
+#undef rdy1133,35617
+void RmuAnalyzer::OrganizeInSpace 1138,35710
+class PerimeterCrawler 1251,40067
+  double cx PerimeterCrawler::cx1257,40233
+  double cy PerimeterCrawler::cy1258,40276
+  class PcIncr PerimeterCrawler::PcIncr1266,40514
+    const Rect& GetRect PerimeterCrawler::PcIncr::GetRect1270,40591
+    double cx PerimeterCrawler::PcIncr::cx1274,40766
+    double cy PerimeterCrawler::PcIncr::cy1275,40805
+    double ux PerimeterCrawler::PcIncr::ux1276,40844
+    double uy PerimeterCrawler::PcIncr::uy1277,40883
+    enum Region PerimeterCrawler::PcIncr::Region1280,40934
+    enum Region { E PerimeterCrawler::PcIncr::Region::E1280,40934
+    enum Region { E = 0, NE,PerimeterCrawler::PcIncr::Region::NE1280,40934
+    enum Region { E = 0, NE, N,PerimeterCrawler::PcIncr::Region::N1280,40934
+    enum Region { E = 0, NE, N, NW,PerimeterCrawler::PcIncr::Region::NW1280,40934
+    enum Region { E = 0, NE, N, NW, W,PerimeterCrawler::PcIncr::Region::W1280,40934
+    enum Region { E = 0, NE, N, NW, W, SW,PerimeterCrawler::PcIncr::Region::SW1280,40934
+    enum Region { E = 0, NE, N, NW, W, SW, S,PerimeterCrawler::PcIncr::Region::S1280,40934
+    enum Region { E = 0, NE, N, NW, W, SW, S, SE PerimeterCrawler::PcIncr::Region::SE1280,40934
+    const Rect& _r;PerimeterCrawler::PcIncr::_r1281,40986
+    double _ux,PerimeterCrawler::PcIncr::_ux1282,41006
+    double _ux, _uy;PerimeterCrawler::PcIncr::_uy1282,41006
+    double _cx,PerimeterCrawler::PcIncr::_cx1283,41027
+    double _cx, _cy;PerimeterCrawler::PcIncr::_cy1283,41027
+    Region _region;PerimeterCrawler::PcIncr::_region1284,41048
+  PcIncr _pci;PerimeterCrawler::_pci1288,41083
+  bool _done;PerimeterCrawler::_done1289,41098
+  vector<bool> _is_covered;PerimeterCrawler::_is_covered1290,41112
+  size_t _n_covered,PerimeterCrawler::_n_covered1291,41140
+  size_t _n_covered, _cover_i;PerimeterCrawler::_cover_i1291,41140
+PerimeterCrawler::PcIncr::PcIncr 1294,41175
+bool PerimeterCrawler::PcIncr::Incr 1302,41352
+PerimeterCrawler::PerimeterCrawler 1318,41898
+bool PerimeterCrawler::Incr 1326,42101
+void PerimeterCrawler::Cover 1339,42423
+void RmuAnalyzer::GetNbrs 1352,42722
+const Boundaries& RmuAnalyzer::GetBoundaries 1386,43788
+const vector<RectId>& RmuAnalyzer::GetNbrs 1388,43858
+Dir::Enum RmuAnalyzer::GetBoundaryDir 1394,43969
+  void PrintEdges ::PrintEdges1402,44158
+class Triangulator 1415,44531
+  Triangulator Triangulator::Triangulator1417,44560
+  struct RectData Triangulator::RectData1428,44985
+    RectId id;Triangulator::RectData::id1429,45005
+    double sz;Triangulator::RectData::sz1430,45020
+    void Set Triangulator::RectData::Set1432,45050
+    bool operator< Triangulator::RectData::operator<1433,45110
+  vector<RectData> rd;Triangulator::rd1435,45184
+  const Matrix<double>& x;Triangulator::x1436,45207
+  const RmuAnalyzer& rmu;Triangulator::rmu1437,45266
+  const Vve& _rage;Triangulator::_rage1440,45302
+  const Boundaries& _b;Triangulator::_b1441,45349
+  double _atol;Triangulator::_atol1442,45373
+void Triangulator::Triangulate 1451,45566
+void Triangulator::GetEdges 1464,45927
+IntersectWithPrevious 1510,47683
+namespace maketri 1539,48927
+  inline bool IsIn maketri::IsIn1540,48947
+void Triangulator::MakeTri 1554,49334
+inline void Triangulator::MakeCcw 1596,51306
+AspectRatio 1621,52079
+void RmuAnalyzer::Triangulate 1632,52393
+namespace r2t 1644,52724
+  typedef vector< vector<size_t> > Vvi;r2t::Vvi1645,52740
+  void DistributeTris r2t::DistributeTris1649,52874
+Angle 1662,53293
+bool RmuAnalyzer::RtoT::operator< 1680,53838
+void RmuAnalyzer::MakeRtoT 1686,54132
+bool RmuAnalyzer::GetTriTag 1747,56298
+const Matrix<double>& RmuAnalyzer::GetX 1788,57442
+const Matrix<RectId>& RmuAnalyzer::GetTri 1789,57506
+void RmuAnalyzer::GetTrisSharingRect 1791,57575
+GetCornerBC 1800,57811
+#define do1 1807,58069
+#define do2 1808,58107
+#undef do11816,58455
+#undef do21817,58466
+PrepLinearInterp 1821,58499
+LinearInterp 1863,59562
+
+RectMeshUnstruct_pri.hpp,4211
+#define INCLUDE_UTIL_RECTMESHUNSTRUCT_PRI2,42
+namespace util 10,230
+namespace rmesh util::rmesh11,247
+  struct RectOpts util::rmesh::RectOpts18,491
+    double min_len,util::rmesh::RectOpts::min_len20,544
+    double min_len, max_len;util::rmesh::RectOpts::max_len20,544
+    static const double max_aspect_ratio;util::rmesh::RectOpts::max_aspect_ratio22,608
+    RectOpts(util::rmesh::RectOpts::RectOpts24,651
+    RectOpts(util::rmesh::RectOpts::RectOpts26,723
+  class ResolutionFn util::rmesh::ResolutionFn32,894
+    virtual ~ResolutionFn(util::rmesh::ResolutionFn::~ResolutionFn34,927
+  class TensorMeshLinInterpRF util::rmesh::TensorMeshLinInterpRF39,1066
+    Matrix<double> _x,util::rmesh::TensorMeshLinInterpRF::_x54,1599
+    Matrix<double> _x, _y,util::rmesh::TensorMeshLinInterpRF::_y54,1599
+    Matrix<double> _x, _y, _f;util::rmesh::TensorMeshLinInterpRF::_f54,1599
+  class RectMeshUnstruct util::rmesh::RectMeshUnstruct58,1696
+    const RectOpts& GetRectOpts(util::rmesh::RectMeshUnstruct::GetRectOpts71,2126
+    Rect _domain;util::rmesh::RectMeshUnstruct::_domain84,2559
+    RectOpts _ro;util::rmesh::RectMeshUnstruct::_ro85,2577
+    vector<QuadTree*> _qts;util::rmesh::RectMeshUnstruct::_qts86,2595
+    size_t _nx,util::rmesh::RectMeshUnstruct::_nx87,2623
+    size_t _nx, _ny;util::rmesh::RectMeshUnstruct::_ny87,2623
+    mutable vector<Rect> _rs;util::rmesh::RectMeshUnstruct::_rs88,2644
+  class RectMeshUnstruct::QuadTree util::rmesh::RectMeshUnstruct::QuadTree94,2725
+    Rect _r;util::rmesh::RectMeshUnstruct::QuadTree::_r98,2804
+        QuadTree* kids[util::rmesh::RectMeshUnstruct::QuadTree::kids101,2844
+      } _n;util::rmesh::RectMeshUnstruct::QuadTree::_n102,2894
+        RectId id;util::rmesh::RectMeshUnstruct::QuadTree::id104,2938
+      } _l;util::rmesh::RectMeshUnstruct::QuadTree::_l105,2957
+    bool _is_leaf;util::rmesh::RectMeshUnstruct::QuadTree::_is_leaf107,2984
+    const Rect& GetRect(util::rmesh::RectMeshUnstruct::QuadTree::GetRect114,3086
+  struct TriTag util::rmesh::TriTag135,3933
+    size_t id;util::rmesh::TriTag::id136,3951
+    Dir::Enum dir;util::rmesh::TriTag::dir139,4070
+    char anchor;util::rmesh::TriTag::anchor142,4194
+  struct RectTag util::rmesh::RectTag146,4243
+    RectId id;util::rmesh::RectTag::id147,4262
+    char Dx,util::rmesh::RectTag::Dx151,4451
+    char Dx, Dy;util::rmesh::RectTag::Dy151,4451
+  struct Edge util::rmesh::Edge154,4474
+    RectId id;util::rmesh::Edge::id155,4490
+    Dir::Enum bdy;util::rmesh::Edge::bdy156,4534
+    bool use_in_GetEdge;util::rmesh::Edge::use_in_GetEdge157,4606
+    Edge(util::rmesh::Edge::Edge159,4684
+    Edge(util::rmesh::Edge::Edge160,4746
+    Edge(util::rmesh::Edge::Edge161,4820
+    bool operator< util::rmesh::Edge::operator<165,4947
+    bool operator==(util::rmesh::Edge::operator==166,5019
+  typedef vector< vector<Edge> > Vve;util::rmesh::Vve169,5097
+  class RmuAnalyzer util::rmesh::RmuAnalyzer171,5136
+    const RectMeshUnstruct& _rmu;util::rmesh::RmuAnalyzer::_rmu263,9671
+    const Rect& _r;util::rmesh::RmuAnalyzer::_r264,9705
+    const vector<Rect>& _rs;util::rmesh::RmuAnalyzer::_rs265,9741
+    Boundaries _b;util::rmesh::RmuAnalyzer::_b267,9771
+    double _ux,util::rmesh::RmuAnalyzer::_ux268,9816
+    double _ux, _uy;util::rmesh::RmuAnalyzer::_uy268,9816
+    size_t _nr;util::rmesh::RmuAnalyzer::_nr269,9854
+    bool _any_periodic;util::rmesh::RmuAnalyzer::_any_periodic270,9870
+    vector< vector<RectId> > _ag;util::rmesh::RmuAnalyzer::_ag275,10088
+    vector< vector<Dir::Enum> > _ag_bdy;util::rmesh::RmuAnalyzer::_ag_bdy281,10473
+    Matrix<double> _x;util::rmesh::RmuAnalyzer::_x283,10570
+    vector<Dir::Enum> _bdypt_side;util::rmesh::RmuAnalyzer::_bdypt_side285,10665
+    Matrix<RectId> _tri;util::rmesh::RmuAnalyzer::_tri287,10722
+    Matrix<Dir::Enum> _tri_bdy;util::rmesh::RmuAnalyzer::_tri_bdy292,11075
+    struct RtoT util::rmesh::RmuAnalyzer::RtoT294,11141
+      size_t ti;util::rmesh::RmuAnalyzer::RtoT::ti295,11159
+      double theta;util::rmesh::RmuAnalyzer::RtoT::theta296,11176
+    vector< vector<RtoT> > _r2t;util::rmesh::RmuAnalyzer::_r2t299,11247
+
+TestRmesh.cpp,1054
+  void PrintHelp(::PrintHelp15,405
+  struct Inputs ::Inputs19,433
+    double min_len,::Inputs::min_len21,503
+    double min_len, max_len;::Inputs::max_len21,503
+    Matrix<double> x,::Inputs::x30,978
+    Matrix<double> x, y;::Inputs::y30,978
+    Matrix<double> f;::Inputs::f35,1251
+    string save_filename;::Inputs::save_filename37,1293
+  bool ProcessKvf(::ProcessKvf40,1325
+  bool TestFileWrite(::TestFileWrite60,2013
+  struct SparseTriple ::SparseTriple68,2163
+    size_t m,::SparseTriple::m69,2187
+    size_t m, n;::SparseTriple::n69,2187
+    vector<size_t> I,::SparseTriple::I70,2204
+    vector<size_t> I, J;::SparseTriple::J70,2204
+    vector<double> s;::SparseTriple::s71,2229
+  void TestInterpolater(::TestInterpolater74,2257
+  class DummyGreensFn ::DummyGreensFn116,3601
+    double Call(::DummyGreensFn::Call118,3660
+    double Call(::DummyGreensFn::Call120,3754
+  bool IsInsideTri(::IsInsideTri124,3852
+  bool IsInsideRect(::IsInsideRect132,4098
+  void RunTest(::RunTest138,4257
+int main(221,7423
+
+Tri2.hpp,1182
+#define INCLUDE_UTIL_TRI2P2,27
+namespace util 6,74
+namespace rmesh util::rmesh7,91
+  class Tri2 util::rmesh::Tri211,163
+    double const* _tri[util::rmesh::Tri2::_tri12,178
+    Tri2(util::rmesh::Tri2::Tri215,216
+    static size_t Nvi(util::rmesh::Tri2::Nvi18,330
+    static size_t Pvi(util::rmesh::Tri2::Pvi19,386
+    static bool IsCcw(util::rmesh::Tri2::IsCcw21,443
+    bool IsCcw(util::rmesh::Tri2::IsCcw25,646
+    double EdgeLen2(util::rmesh::Tri2::EdgeLen227,715
+    template<typename T> static inline T Square(util::rmesh::Tri2::Square42,1321
+    static double* Diff(util::rmesh::Tri2::Diff44,1407
+    void Diff(util::rmesh::Tri2::Diff46,1542
+    static double* Scale(util::rmesh::Tri2::Scale48,1632
+    static double Dot(util::rmesh::Tri2::Dot50,1722
+    static double Norm2(util::rmesh::Tri2::Norm252,1822
+  inline double Tri2::MaxEdgeLen2(util::rmesh::Tri2::MaxEdgeLen255,1893
+  inline double Tri2::AspectRatio(util::rmesh::Tri2::AspectRatio67,2204
+  inline void Tri2::BarycentricMatrix(util::rmesh::Tri2::BarycentricMatrix83,2590
+  ToBarycentric(util::rmesh::ToBarycentric96,2926
+  ToBarycentric(util::rmesh::ToBarycentric106,3196
+
+ValueSetter.cpp,414
+namespace util 3,28
+  ValueSetter::ValueSetter(util::ValueSetter::ValueSetter5,46
+  int ValueSetter::GetNelem(util::ValueSetter::GetNelem13,256
+  void ValueSetter::InitSizes(util::ValueSetter::InitSizes15,308
+  bool ValueSetter::SetString(util::ValueSetter::SetString23,432
+  bool ValueSetter::SetArray<util::ValueSetter::SetArray44,909
+  bool ValueSetter::SetArray<util::ValueSetter::SetArray60,1355

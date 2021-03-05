@@ -1,0 +1,77 @@
+hmmvpCompress key_value_file
+  'key_value_file' contains the following fields:
+
+  'allow_overwrite' (optional) says whether write_(hd_/hmat_)filename can be
+    overwritten. If it is not provided, then overwrite of these files is not
+    allowed.
+
+  'do_extra_tasks_only' (optional) says whether to call ImplGreensFn::DoExtras()
+    only and exit.
+
+  'write_hd_filename', 'use_hd_filename': Optionally, use one of these two
+    keys. Use the first to save the decomposition after it is computed. Use the
+    second to use a saved decomposition rather than computing a new one.
+
+  'write_hmat_filename' is the name of the file into which the H-matrix should
+    be written.
+
+  'use_hmat_filename' is optionally an old H-matrix file for the same problem
+    that can be used to speed up constructing this one.
+
+  'tol' specifies the approximation error:
+      ||B_approx - B||_F <= tol ||B||_F.
+
+  'Bfro' optionally is an estimate of ||B||_F that should be used instead of the
+    internally generated estimate.
+
+  'greens_fn' is a string indicating which Green's function class to use. A GF
+    class may require more key-value pairs. Currently available GFs are these:
+
+      'inverse-r': This is for testing. Provide these key-value pairs:
+        'X': 3xN array of points.
+        'order': 0, 1, 2, 3.
+        'delta': Plummer softening parameter.
+
+      'okada-rect-tensor-mesh':
+        'x', 'eta': x is an (ns+1)-vector of along-strike cell edges. eta is an
+          (nd+1)-vector of along-dip cell edges. The mesh is a tensor- product
+          mesh. The coordinate system is in the plane of the fault. Fast index
+          is along strike from x(1) to x(end) and eta(1) to eta(end).
+        'depth_min': Minimum depth of fault.
+        'dipdeg': Dipping angle of the fault in degrees.
+        'mu', 'nu': Lame parameters.
+        'disl_strike', 'disl_dip, 'disl_tensile': As in Okada's routine dc3d.
+        'component': Component to compute [optiona; default 1]:
+          0 - along strike, 1 - along dip, 2 - normal.
+        'bc_filename': File in which to store N binary double-precision numbers,
+          ordered as above, containing the velocity boundary condition data. The
+          BC is that the medium on all sides except the updip one slide in the
+          direction of 'component'.
+        As a hint, a subducting fault going to the surface, with eta=0 on the
+        updip end, is specified with dipdeg < 0, depth_min = 0. disl_dip > 0 is
+        a dislocation in the +eta direction.
+
+      'okada-subduct-symm-rect-periodic-tensor-mesh':
+        'x', 'eta': x is an (ns/2+1)-vector of along-strike cell edges. x(1) =
+          0, and the full fault is given by [x(end:-1:2) x(1:end)]. eta is an
+          (nd+1)-vector of along-dip cell edges. The mesh is a tensor- product
+          mesh. The coordinate system is in the plane of the fault. Fast index
+          is along strike from x(1) to x(end) and eta(1) to eta(end). Let N =
+          (ns/2)*nd.
+        'mu', 'nu': Lame parameters.
+        'depth_min': Minimum depth of fault.
+        'dipdeg': Dipping angle of the fault in degrees.
+        'nrepeat': Number of repeat images in each strike direction.
+        'bc_filename': File in which to store N binary double-precision numbers,
+          ordered as above, containing the velocity boundary condition data from
+          the down-dip end.
+
+      'okada-subduct-symm-rect-periodic-quad-mesh':
+        'rmesh_filename': RectUnstructMesh file.
+        'mu', 'nu': Lame parameters.
+        'depth_min': Minimum depth of fault.
+        'dipdeg': Dipping angle of the fault in degrees.
+        'nrepeat': Number of repeat images in each strike direction.
+        'bc_filename': File in which to store N binary double-precision numbers,
+          ordered as above, containing the velocity boundary condition data from
+          the down-dip end.

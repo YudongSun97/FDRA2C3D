@@ -1,0 +1,92 @@
+#define _hmmvp_Header_text_
+hmmvp: Software to form and apply Hierarchical Matrices
+Version 1.0
+A.M. Bradley ambrad@cs.stanford.edu
+CDFM Group, Geophysics, Stanford University
+
+
+#define _hmmvpbuild_PrintHelp_text_
+hmmvpbuild
+  This message.
+
+hmmvpbuild <key-value file>
+  Build an H-matrix.
+    The key-value file describes the problem. The easiest way to create a
+  key-value file is to use matlab/kvf.m. You can create one in C++ by using the
+  interface described in util/include/KeyValueFile.hpp and linking against
+  libhmmvp.
+    The key-value file must contain at least this field:
+      command [string]: Right now, there is just one command available:
+        compress .
+    Type 'hmmvp help <command>' for help on each command.
+
+hmmvpbuild help <command>
+
+
+#define _hmmvpbuild_compress_PrintHelp_text_
+compress: Build an H-matrix. The key-value file must contain the following
+additional fields:
+
+  write_hmat_filename [string]: File to which to write H-matrix data.
+
+  greens_fn [string]: The kernel to use. These are as follows:
+
+    inverse-r: A simple kernel for testing and demonstration.
+      X [3xN real array]:
+      order [real scalar]:
+      delta [real scalar]:
+
+    DEV Add additional kernel descriptions here.
+
+  eta [real scalar, [3]]: eta controls how point clusters are formed and
+    paired. Let c1 and c2 be two point clusters. For clusters c, c1, c2 and
+    points p, p1, p2 define:
+      centroid(c): Unweighted centroid of the points
+      dist(p1, p2): Euclidean distance between p1 and p2
+      radius(c): max_{point p in cluster c} dist(p, centroid(c)).
+    Then two clusters are considered to be sufficiently distant if
+      min(radius(c1), radius(c2)) <
+        eta/2 [dist(centroid(c1), centroid(c2)) - (radius(c1) + radius(c2))].
+
+  tol [real scalar, [1e-6]]: The error tolerance for the H-matrix
+    approximation. See next.
+
+  err_method [['mrem-fro'], 'brem-fro', or 'mrem-abs']: There are two parts to
+    each error method:
+      1. MREM vs BREM and
+      2. (Abs)olute or relative to ||G||_F, the (Fro)benius norm of the matrix.
+    If 'abs', then the error bound of the approximation Ga to G has the form
+      ||Ga - G||_F <= tol;
+    if 'fro', then
+      ||Ga - G||_F <= tol ||G||_F.
+    Cal the right-hand-side quantity 'err'. Then each has the form
+      ||Ga - G||_F <= err.
+    MREM and BREM differ in how they achieve this bound by assigning different
+    error tolerances to each block Ga_i. brem-fro implements
+      ||Ga_i - G_i||_F <= tol ||G_i||_F.
+    mrem-(fro/abs) implements
+      ||Ga_i - G_i||_F  <= sqrt(m_i n_i) / sqrt(M N) err,
+    where G is M x N and G_i is m_i x n_i.
+      MREM is the more efficient method of MREM and BREM in the following
+    sense. It achieves the greater compression for a given tol. But BREM may be
+    preferable when you want something closer to an element-wise, rather than
+    norm-wise, relative error. (This issue is somewhat complicated.) I recommend
+    you stick with the default unless you have a reason to switch.
+
+  Bfro [real scalar; optional]: The user's estimate of the Frobenius norm of the
+    matrix. If one is not provided but is needed, then an internal method
+    estimates the norm. The internal method will fail if the matrix does not
+    have a strong diagonal.
+
+  use_hmat_filename [string; optional]: Use an old H-matrix possibly to speed up
+    making this new one. hmmvp decides whether it can actually use the old file,
+    so there is no harm in specifying one.
+
+  allow_overwrite [[0] or 1]: Allow an H-matrix file to be overwritten by this
+    new one?
+
+  do_extra_tasks_only [[0] or 1]: Execute only what is in DoExtraTasks*().
+
+  nthreads [[1], >=1]: Number of OpenMP threads, if available.
+
+
