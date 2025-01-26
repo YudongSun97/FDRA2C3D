@@ -8,14 +8,14 @@ HMMVPINC = -I external
 HMMVPLIB = external/hmmvp/lib/libhmmvp_$(mode).a
 UTILINC = -I external
 UTILLIB = external/util/lib/libutil_$(mode).a
-BLASLIB = /usr/lib/x86_64-linux-gnu/libblas.so.3
+BLASLIB = /usr/lib64/libblas.so.3
 
 CPP = g++
 MPICPP = mpic++
 # The rest should not have to be changed.
 
 CPPSRCS = src/main.cpp src/OdeFn.cpp src/Ode.cpp src/StreamDataFile.cpp	\
-src/Fdra.cpp src/HmatrixStressFn.cpp #\
+src/Fdra.cpp src/HmatrixStressFn.cpp src/UniLoadStressFn.cpp#\
 /home/camcat/code/ambrad/util/src/ValueSetter.cpp \
 /home/camcat/code/ambrad/util/src/KeyValueFile.cpp \
 /home/camcat/code/ambrad/util/src/Mpi.cpp \

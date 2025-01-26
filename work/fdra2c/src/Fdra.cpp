@@ -44,8 +44,9 @@ void SpringSliderStressFn::Call (int deriv, double t, const real* x,
 static SpringSliderStressFn* NewSpringSliderStressFn (ValueSetter& vs) {
   vector<real> k;
   real v_creep;
-  if (!(vs.SetArray("ss_k", k) && vs.SetScalar("v_creep", v_creep)))
+  if (!(vs.SetArray("ss_k", k) && vs.SetScalar("v_creep", v_creep))){
     return NULL;
+  }
   return new SpringSliderStressFn(k, v_creep);
   exit(-1);
 }
@@ -562,8 +563,9 @@ Model* BuildModelFromKeyValueFile (const KeyValueFile* kvf, bool disp) {
 
   string stress_fn;
   vs.SetString("stress_fn", stress_fn);
-  if (stress_fn == string("ss"))
+  if (stress_fn == string("ss")){
     m->_mb.stress_fn = NewSpringSliderStressFn(vs);
+  }
   else if (stress_fn == string("h-matrix"))
     m->_mb.stress_fn = NULL;
   else m->_mb.stress_fn = NULL;
