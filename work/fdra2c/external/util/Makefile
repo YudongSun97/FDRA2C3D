@@ -4,8 +4,10 @@
 #   make mode=s opt=-O
 #     serial with no MPI dependencies
 # Change these lines to fit your system.
-BLASLIB = /usr/lib/x86_64-linux-gnu/libblas.so.3
-LAPACKLIB = /usr/lib/x86_64-linux-gnu/liblapack.so.3
+BLASLIB = /cm/shared/apps/blas/open64/1/lib64/libblas.a
+LAPACKLIB = /cm/shared/apps/lapack/open64/64/3.5.0/liblapack.so
+#BLASLIB = /usr/lib/x86_64-linux-gnu/libblas.so.3
+#LAPACKLIB = /usr/lib/x86_64-linux-gnu/liblapack.so.3
 #BLASLIB = ~/dl/lapack-3.2.1/libblas.a
 #LAPACKLIB = ~/dl/lapack-3.2.1/liblapack.a
 CPP = g++

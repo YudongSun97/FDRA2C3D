@@ -8,8 +8,10 @@ CPP = g++
 MPICPP = mpic++
 
 fortranint=4
-BLASLIB = /usr/lib/x86_64-linux-gnu/libblas.so.3
-LAPACKLIB = /usr/lib/x86_64-linux-gnu/liblapack.so.3
+#BLASLIB = /usr/lib/x86_64-linux-gnu/libblas.so.3
+#LAPACKLIB = /usr/lib/x86_64-linux-gnu/liblapack.so.3
+BLASLIB = /cm/shared/apps/blas/open64/1/lib64/libblas.a
+LAPACKLIB = /cm/shared/apps/lapack/open64/64/3.5.0/liblapack.so
 
 
 

@@ -4,18 +4,23 @@
 # Change these lines to fit your system. fortranint should be 4 or 8 bytes. This
 # was established when you compiled LAPACK and BLAS.
 fortranint = 4
-BLASLIB = /home/ambrad/dl/lapack-3.4.2/libblas.a
-LAPACKLIB = /home/ambrad/dl/lapack-3.4.2/liblapack.a
+BLASLIB = /cm/shared/apps/blas/open64/1/lib64/libblas.a
+LAPACKLIB = /cm/shared/apps/lapack/open64/64/3.5.0/liblapack.so
 FORTRANLIB = -lgfortran
+
+ifeq ($(debug),1)
+  db = "_db"
+  DBFLAGS= -g
+  opt = -O0 -no-pie -std=c++98
+else
+  db = 
+  DBFLAGS = 
+  opt = -O3 -no-pie -std=c++98
+endif
 
 CPP = g++
 MPICPP = mpic++
 FORTRAN = gfortran
-
-# Set the optimization level.
-#opt = 
-#opt = -g
-opt = -O3
 
 # Choose serial or OpenMP-parallelized versions. dc3dm does not currently
 # support MPI, but hmmvp does. So if you compile with mode = mpi, libhmmvp_mpi.a
@@ -69,7 +74,7 @@ src/SFHmat.cpp
 HOBJECTS = $(patsubst %.cpp,%.o,$(HCPPSRCS))
 
 %.o : %.cpp
-	$(CPP) $(CPPFLAGS) $(INCLUDE) -c $< -o $@
+	$(CPP) $(DBFLAGS) $(CPPFLAGS) $(INCLUDE) -c $< -o $@
 
 %.o : %.f
 	$(FORTRAN) $(FFLAGS) -c $< -o $@
@@ -87,18 +92,18 @@ libhmmvp: $(HOBJECTS)
 # dc3dm is a program to form and compress the DDM operator.
 dc3dm: $(DOBJECTS) libhmmvp
 ifneq ($(mode),mpi)
-	$(CPP) src/dc3dmMain.cpp $(DOBJECTS) $(INCLUDE) $(CPPFLAGS) $(LDFLAGS) lib/libhmmvp_$(mode).a $(LIBS) -o bin/dc3dm
+	$(CPP) src/dc3dmMain.cpp $(DOBJECTS) $(INCLUDE) $(DBFLAGS) $(CPPFLAGS) $(LDFLAGS) lib/libhmmvp_$(mode).a $(LIBS) -o bin/dc3dm$(db)
 	rm -f src/*.o
 endif
 
 # C++ examples of matrix-vector product.
 mvp:
-	$(CPP) examples/mvp_$(ext).cpp $(INCLUDE) $(LDFLAGS) $(LIBFLAGS) $(LIBDIRS) lib/libhmmvp_$(mode).a $(LIBS) -o examples/mvp_$(mode)
+	$(CPP) examples/mvp_$(ext).cpp $(INCLUDE) $(DBFLAGS)  $(LDFLAGS) $(LIBFLAGS) $(LIBDIRS) lib/libhmmvp_$(mode).a $(LIBS) -o examples/mvp_$(mode)
 
 # C example of MVP.
 cmvp:
 ifeq ($(ext),omp)
-	$(CPP) examples/cmvp_$(ext).c $(INCLUDE) $(LDFLAGS) $(LIBFLAGS) $(LIBDIRS) lib/libhmmvp_$(mode).a $(LIBS) -o examples/cmvp_$(mode)
+	$(CPP) examples/cmvp_$(ext).c $(INCLUDE) $(DBFLAGS)  $(LDFLAGS) $(LIBFLAGS) $(LIBDIRS) lib/libhmmvp_$(mode).a $(LIBS) -o examples/cmvp_$(mode)
 endif
 
 # Fortran 90 example.
