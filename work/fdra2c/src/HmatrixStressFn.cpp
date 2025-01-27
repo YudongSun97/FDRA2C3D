@@ -311,7 +311,11 @@ StressFn* NewHmatrixStressFn (const Model* m, KeyValueFile* kvf) {
     vs.SetScalar("hm_scale", scale, (real) 1.0);
     sf->SetScale(scale);
     vector<real> bc;
-    if (vs.SetArray("hm_bc", bc, m->GetNcomp()))
+    int uniload, ok;
+    vs.SetScalar("uniload", uniload, (int) 0);
+    if (uniload) ok=vs.SetArray("tdot_o_vcreep", bc);
+    else ok=vs.SetArray("hm_bc", bc, m->GetNcomp());
+    if (ok)
       sf->SetBc(bc, v_creep);
     else {
       delete sf;
