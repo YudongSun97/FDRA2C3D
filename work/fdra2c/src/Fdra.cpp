@@ -7,6 +7,7 @@
 #include "util/include/Exception.hpp"
 #include "util/include/ValueSetter.hpp"
 #include "util/include/KeyValueFile.hpp"
+#include "util/include/Mpi.hpp"
 #include "StreamDataFile.hpp"
 #include "OdeFn.hpp"
 #include "Fdra_pri.hpp"
