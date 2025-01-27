@@ -320,7 +320,7 @@ StressFn* NewHmatrixStressFn (const Model* m, KeyValueFile* kvf) {
     else {
       delete sf;
       if (mpi::AmRoot())
-        fprintf(stderr, "NewHmatrixStressFn: No hm_bc.");
+        fprintf(stderr, "NewHmatrixStressFn: No hm_bc.\n");
       return NULL;
     }
     if (vs.SetArray("hm_bc_edc", bc, m->GetNcomp()))

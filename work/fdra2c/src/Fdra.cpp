@@ -13,6 +13,7 @@
 #include "Fdra_pri.hpp"
 #include "MyCodeAnalysis.hpp"
 
+// Define a stress function representing a spring slider
 namespace fdra {
 using namespace util;
   
@@ -52,24 +53,30 @@ static SpringSliderStressFn* NewSpringSliderStressFn (ValueSetter& vs) {
   exit(-1);
 }
 
+//Input/output (ol = output listener?)
 namespace ol {
+  //Default output fields. I think this assigns indexes to each field
   struct DefaultSdfs { enum Enum { slip = 0, v, theta, dlte, p, T }; };
 
+  //Initiate output files.
   void InitSdfs (const Model* m, vector<StreamDataFile*>& sdfs,
                  const string& fnpre, int ntot, int ncomp) {
     bool all_ok = true, already_exists = false;
     if (mpi::AmRoot()) {
       static const char* fns[] = {"slip", "v", "theta", "dlte", "p", "T"};
 
+      //nrs contains size of each field
       int nrs[6];
       nrs[DefaultSdfs::slip] = ntot*ncomp; nrs[DefaultSdfs::v] = ntot*ncomp;
       for (int j = 2; j < 6; j++) nrs[j] = ntot;
 
+      //figure out which output files need to be written
       bool write_fns[] = {true, true, true, false, false, false};
       write_fns[DefaultSdfs::dlte] = !m->use_only_theta();
       write_fns[DefaultSdfs::p] = m->use_T() || m->use_p();
       write_fns[DefaultSdfs::T] = m->use_T();
 
+      //put together file names and initiate files
       sdfs.resize(12, NULL);
       for (size_t i = 0; i < sizeof(fns) / sizeof(char*); i++) {
         string fn = fnpre + string("_") + string(fns[i]) + string(".sdf");
@@ -103,6 +110,7 @@ namespace ol {
   }
 }
 
+//Output listener class DefaultGatherOL
 class DefaultGatherOL : public OutputListener {
 public:
   DefaultGatherOL(const Model* m) throw (FileException);
@@ -133,6 +141,7 @@ DefaultGatherOL::~DefaultGatherOL () {
   for (size_t i = 0; i < _sdfs.size(); i++) DeleteStreamDataFile(_sdfs[i]);
 }
 
+// Write and flush
 inline void DefaultGatherOL::Write (int si, double t, int ntot, int factor) {
   _sdfs[si]->Write(&t, 1);
   _sdfs[si]->Flush();
@@ -166,6 +175,8 @@ bool DefaultGatherOL::Call (double t, double dt, const StateVector* sv) {
   return true;
 }
 
+//Output listener class: LineintOL
+//creates outpt file: _lix, not sure what this does (some sort of counter?)
 class LineintOL : public OutputListener {
 public:
   LineintOL(const Model* m) throw (FileException);
@@ -242,6 +253,7 @@ bool LineintOL::Call (double t, double dt, const StateVector* sv) {
   return true;
 }
 
+// output listener class SampleOL
 class SampleOL : public OutputListener {
 public:
   SampleOL(const Model* m) throw (FileException);
@@ -295,6 +307,7 @@ Model::~Model () {
   if (_mb.stress_fn) delete _mb.stress_fn;
 }
 
+//Check that model contains what's needed
 bool Model::IsOk (bool disp) const {
 #define require(a)                                                      \
   (!(a) ? (printf("IsOk: (" #a ") does not hold.\n"), false) : true)
@@ -347,13 +360,16 @@ bool Model::IsOk (bool disp) const {
   }
 
   // For now.
-  require(_mesh.ncomp == 1);
+  if (this->stress_fn()->IncludeNormalComponent()){
+    require(_mesh.ncomp == 1);
+    }
   require(!_fr.a_of_T);
 
   return true;
 #undef require
 }
 
+// InitListeners
 bool Model::InitListeners (bool disp_messages) {
   if (!_io.save_filename.empty()) {
     try {
@@ -393,6 +409,7 @@ bool Model::InitListeners (bool disp_messages) {
   return true;
 }
 
+//Functions to set and get various Model fields
 int Model::GetN () const { return _mesh.n; }
 int Model::GetNcomp () const { return _mesh.ncomp; }
 int Model::GetNelem () const { return _mesh.nelem; }
@@ -401,6 +418,7 @@ StressFn* Model::GetStressFn () const { return _mb.stress_fn; }
 const mpi::ArraySegmenter* Model::GetArraySegmenter () const
 { return &_ctrl.as; }
 
+// class to set values ect
 class ValuePutter {
 public:
   ValuePutter(const mpi::ArraySegmenter* as, KeyValueFile* kvf);
@@ -426,6 +444,7 @@ ValuePutter::ValuePutter (const mpi::ArraySegmenter* as, KeyValueFile* kvf)
     _rwrk.resize(2 * _ntot);
 }
 
+// function to set model values
 void ValuePutter::PutArray (const string& field, const real* v, int factor) {
   if (_am_root && factor > 2) _rwrk.resize(factor * _ntot);
   _as->Gather(v, &_rwrk[0], _root, factor);
@@ -435,6 +454,7 @@ void ValuePutter::PutArray (const string& field, const real* v, int factor) {
   }
 }
 
+// Make kvf from model.
 void Model::ToKvf (KeyValueFile* kvf) const {
   ValuePutter vp(&_ctrl.as, kvf);
   vp.PutArray("mu0", _fr.mu0);
@@ -521,6 +541,7 @@ namespace mdl {
   }
 }
  
+// function to read kvf into model
 Model* BuildModelFromKeyValueFile (const KeyValueFile* kvf, bool disp) {
   static const char* fn_name = "BuildModelFromKeyValueFile";
   bool am_root = mpi::AmRoot();
@@ -529,6 +550,7 @@ Model* BuildModelFromKeyValueFile (const KeyValueFile* kvf, bool disp) {
   ModelValueSetter vs(&m->_ctrl.as, kvf, &m->_ptrs);
 
   // as is not actually valid yet. But we can call SetScalar safely.
+  //This sets nelem_tot and ncomp to values from fields in kvf.
   int nelem_tot, ncomp;
   if (!(vs.SetScalar("nelem", nelem_tot) && vs.SetScalar("ncomp", ncomp))) {
     delete m;
@@ -539,6 +561,8 @@ Model* BuildModelFromKeyValueFile (const KeyValueFile* kvf, bool disp) {
 
   m->_ctrl.as.ApportionN(nelem_tot);
 
+  //nelem is the number of elements in the current rank
+  //(just difference btween consecutive values in _bds).
   m->_mesh.nelem = m->_ctrl.as.GetN();
   m->_mesh.ncomp = ncomp;
   m->_mesh.n = m->_mesh.nelem * m->_mesh.ncomp;
@@ -552,6 +576,7 @@ Model* BuildModelFromKeyValueFile (const KeyValueFile* kvf, bool disp) {
   vs.SetArray("a", m->_fr.a);
   vs.SetArray("b", m->_fr.b);
   vs.SetArray("d_c", m->_fr.d_c);
+  //the third argument is assigned if the field can not be read.
   vs.SetScalar("v0", m->_fr.v0, (real) -1.0);
   int use_vcutoff;
   vs.SetScalar("use_vcutoff", use_vcutoff, 0);

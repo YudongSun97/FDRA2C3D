@@ -15,6 +15,7 @@ void CalcFriction (Model::EvolutionLaw el, real mu0, real a, real b,
   real g = 0.5 * v_o_v0 * exp((mu0 + b*log(theta_v0_o_dc))/a);
   *mu = a * asinh(g);
   if (mu_psi || mu_gamma) {
+    //These terms are related to the time derivative of *regularized* friction
     real gasinhg_g = g / sqrt(g*g + 1);
     if (mu_psi)   *mu_psi   = a * gasinhg_g;
     if (mu_gamma) *mu_gamma = b * gasinhg_g;
@@ -164,6 +165,7 @@ OdeFn::OdeFn (const Model* m) : _m(m), _osv(m), _mdi(NULL), _ctr(0) {
 OdeFn::~OdeFn () { if (_mdi) delete _mdi; }
 
 int OdeFn::GetN () {
+  //2*n for slip, velocity; nelem for theta and possibly porosity
   return 2*_m->n() + _m->nelem() + (_m->use_only_theta() ? 0 : _m->nelem());
 }
 
@@ -318,7 +320,7 @@ Call (double t, double dt, const real* y, real* yd, bool& is_error) {
   Ca::GetTimer()->Tic(catmr_odefn);
 
   const int n = _m->n(), nelem = _m->nelem();
-  _osv.Decode(y);
+  _osv.Decode(y);  //break y into slip, velocity, theta, ...
 
   _rwrk.Reset(n);
   real* v = _rwrk.AllocWork(n);

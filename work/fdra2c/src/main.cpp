@@ -109,6 +109,7 @@ int main (int argc, char** argv) {
 
   KeyValueFile* kvf = NULL;
   if (am_root) {
+    //Create kvf structure and read file into it.
     kvf = NewKeyValueFile();
     if (!kvf->Read(argv[1])) {
       fprintf(stderr, "Failed to read the key-value file %s.\n", argv[1]);
@@ -116,6 +117,7 @@ int main (int argc, char** argv) {
       Finalize(-1);
     }
   }
+  //Build model based on kvf
   Model* model = BuildModelFromKeyValueFile(kvf);
   if (!model) {
     if (am_root)
@@ -132,6 +134,7 @@ int main (int argc, char** argv) {
 
   if (am_root) DeleteKeyValueFile(kvf);
 
+  // Check that the model contains every that's needed:
   if (!model || !model->IsOk()) {
     if (am_root)
       fprintf(stderr, "The key-value file %s does not create a full model.\n",
@@ -145,6 +148,7 @@ int main (int argc, char** argv) {
     Finalize(-1);
   }
 
+  //Write new kvf with model (why?) %TODO
   if (am_root) kvf = NewKeyValueFile();
   model->ToKvf(kvf);
   if (am_root) {
@@ -152,6 +156,7 @@ int main (int argc, char** argv) {
     DeleteKeyValueFile(kvf);
   }
 
+  //Run model (note that this is just calling "RunOde")
   mpi::Barrier(); Ca::GetTimer()->Tic(0);
   Go(model);
   mpi::Barrier(); Ca::GetTimer()->Toc(0);
