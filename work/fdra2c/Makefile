@@ -10,7 +10,6 @@ HMMVPLIB = external/hmmvp/lib/libhmmvp_$(mode).a
 UTILINC = #-I external/util/include
 UTILLIB = external/util/lib/libutil_$(mode).a
 BLASLIB = /home/camcat/code/lib/lapack-3.2.1/libblas.a
-#BLASLIB = /cm/shared/apps/blas/open64/1/lib64/libblas.a
 
 ifeq ($(debug),1)
   db = "_db"
@@ -25,7 +24,7 @@ MPICPP = mpic++
 # The rest should not have to be changed.
 
 CPPSRCS = src/main.cpp src/OdeFn.cpp src/Ode.cpp src/StreamDataFile.cpp	\
-src/Fdra.cpp src/HmatrixStressFn.cpp src/UniLoadStressFn.cpp#\
+src/Fdra.cpp src/HmatrixStressFn.cpp#\
 /home/camcat/code/ambrad/util/src/ValueSetter.cpp \
 /home/camcat/code/ambrad/util/src/KeyValueFile.cpp \
 /home/camcat/code/ambrad/util/src/Mpi.cpp \

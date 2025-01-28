@@ -5,6 +5,7 @@
 #include <string.h>
 #include <iostream>
 #include "util/include/CodeAnalysis.hpp"
+#include "util/include/Mpi.hpp"
 
 namespace util {
 namespace mpi {
