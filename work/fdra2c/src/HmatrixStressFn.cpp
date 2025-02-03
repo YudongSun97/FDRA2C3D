@@ -72,6 +72,7 @@ void HmatrixStressFn::Call (int deriv, double t, const real* x,
   }
   Mvp(xc, tau);
 
+  //Add loading term
   if (!_bc.empty()) {
     if (deriv == 1) t = 1;
     real s = _scale*t*_v_creep;
@@ -313,7 +314,11 @@ StressFn* NewHmatrixStressFn (const Model* m, KeyValueFile* kvf) {
     vector<real> bc;
     int uniload, ok;
     vs.SetScalar("uniload", uniload, (int) 0);
+    //if uniload==1 (uniform loading), set bc to "tdot_o_vcreep"
+    //Later loading will be calculated as: taudot = _bc*_vcreep
     if (uniload) ok=vs.SetArray("tdot_o_vcreep", bc);
+    //hm_bc is a (composite) Green's function relating stressing rates to BC slip rates
+    //Later loading will be calculated as: taudot = _bc*_vcreep
     else ok=vs.SetArray("hm_bc", bc, m->GetNcomp());
     if (ok)
       sf->SetBc(bc, v_creep);
