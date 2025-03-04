@@ -27,7 +27,7 @@ function t = qload_t (cf, fld, stride, do_stride)
 end
 
 function s = qload (cf, stride, varargin)
-  o = popt(varargin,...
+  o = popts(varargin,...
            {{'do_stride' numel(stride) == 1};
             {'want_slip' 1}; {'want_theta' 0}; {'want_dlte' 0}; {'want_p' 0};
             {'want_t' 0}; {'s'}; {'rid' -1}});
@@ -133,7 +133,7 @@ function MakeGifBig (cf, clim, giffn, is, varargin)
   t = fdra2c('qload_t', cf);
   if (isempty(is)) is = 1:numel(t); end
   t = t(is)/(3600*24);
-  o = popt(varargin, {{'delay' 0},
+  o = popts(varargin, {{'delay' 0},
                       {'fld' 'v'},
                       {'transform' @log10}});
   nis = numel(is);
@@ -205,7 +205,7 @@ function bc = LoadBc (fn, nr)
 end
 
 function [c rs] = rmi_Init (rid, varargin)
-  o = popt(varargin, {{'use_max' 1}});
+  o = popts(varargin, {{'use_max' 1}});
   rs = dc3dm.mRects(rid);
   d = dc3dm.mData(rs);
   if (o.use_max) dx = d.Dx; dy = d.Dy;
@@ -226,7 +226,7 @@ end
 %   fdra2c('vi_Start', s); fdra2c('vi_Start', s, 'fld', 'slip');
 
 function vi_Start (s, varargin)
-  o = popt(varargin, {{'fld' 'v'},
+  o = popts(varargin, {{'fld' 'v'},
                       {'transform' @log10},
                       {'clim', []},
                       {'use_max' 1}});
@@ -561,7 +561,7 @@ function lcodx = GetTrueLcodx (cf)
 end
 
 function c = ixy_Compute (cf, is, varargin)
-  o = popt(varargin, {{'c'}});
+  o = popts(varargin, {{'c'}});
   if (nargin < 2) is = []; end
   if (isempty(is) || numel(is) == 1)
     t = qload_t(cf);
@@ -622,7 +622,7 @@ end
 
 function [h Ix Iy] = ixy_ShowChunk (c, is, varargin)
   if (nargin < 2 || isempty(is)) is = 1:numel(c.t); end
-  o = popt(varargin, {{'n' numel(is)}, {'unit' 'day'}});
+  o = popts(varargin, {{'n' numel(is)}, {'unit' 'day'}});
   unit = TimeUnit(o.unit);
   tlin = linspace(c.t(is(1)), c.t(is(end)), o.n);
   Ix = interp1(c.t(is), c.Ix(:, is).', tlin).';
@@ -636,7 +636,7 @@ function [h Ix Iy] = ixy_ShowChunk (c, is, varargin)
 end
 
 function h = ixy_ShowRaw (c, is, varargin)
-  o = popt(varargin, {{'transform' @log10}});
+  o = popts(varargin, {{'transform' @log10}});
   if (isempty(o.transform)) o.transform = @(x) x; end
   if (nargin < 2 || isempty(is)) is = 1:numel(c.t); end
   img = @(x, I) imagesc(1:numel(is), x*1e-3, o.transform(I));
@@ -651,7 +651,7 @@ function c = ixy_Init (cf, varargin)
   function v = ixy_default_fn (I, X, Y)
     v = mean(I);
   end
-  c = popt(varargin, {{'xlim'}, {'ylim'}, {'nx'}, {'ny'}, ...
+  c = popts(varargin, {{'xlim'}, {'ylim'}, {'nx'}, {'ny'}, ...
                       {'fn' @ixy_default_fn}});
   c.cf = cf;
 
@@ -671,7 +671,7 @@ function c = ixy_Init (cf, varargin)
 end
 
 function [Ix Iy t] = ixy_IntegrateImages (c, is, varargin)
-  o = popt(varargin, {{'fld' 'v'}});
+  o = popts(varargin, {{'fld' 'v'}});
   s = fdra2c('qload', c.cf, is, 'do_stride', 0);
   t = s.t;
   ni = numel(s.t);
@@ -688,7 +688,7 @@ end
 function ixy_AutoShow (c, varargin)
 % This is one way to use c from ixy_Compute, but I'm not at all happy with
 % it. Going to try something more manual next.
-  o = popt(varargin, {{'short' 1}, {'n'}});
+  o = popts(varargin, {{'short' 1}, {'n'}});
   ts = GroupTimes(c.t, o.short);
   if (isempty(o.n)) o.n = ceil(numel(c.t)/numel(ts)); end
   Ix = []; Iy = [];
@@ -865,7 +865,7 @@ function c = TraceSlip (cf, varargin)
     end
   end
   
-  q.o = popt(varargin, {{'yis' []}});
+  q.o = popts(varargin, {{'yis' []}});
   if (isempty(q.o.yis)) error('No y indices specified.'); end
   q.t = fdra2c('qload_t', cf, 'slip');
   s_Map(cf, 1:numel(q.t), @Fn);
@@ -893,7 +893,7 @@ function c = GetDenseAvgV (cf, varargin)
   
   q.rs = dc3dm.mRects(cf.rmesh_filename);
   q.d = dc3dm.mData(q.rs);
-  q.o = popt(varargin, {{'xlim' q.d.xlim}; {'ylim' q.d.ylim}});
+  q.o = popts(varargin, {{'xlim' q.d.xlim}; {'ylim' q.d.ylim}});
   
   q.t = fdra2c('qload_t', cf, 'slip');
   s_Map(cf, 1:numel(q.t), @Fn);
@@ -932,7 +932,7 @@ function c = FindMaxV (cf, varargin)
 end
 
 function ts_Plot (c, varargin)
-  o = popt(varargin,...
+  o = popts(varargin,...
            {{'nx', 5}});
   uy = unique(c.y);
   is = [];
@@ -950,4 +950,17 @@ end
 function c = CC (v)
 % Cell-centered from node-centered.
   c = 0.5*(v(1:end-1) + v(2:end));
+end
+
+function o = popt (o, fld, val)
+  if (~isfield(o, fld)) o.(fld) = val; end
+end
+
+function o = popts (o, fvs)
+    if ~isempty(o)
+        o = struct(); % Reassign an empty structure
+    end
+  for (i = 1:numel(fvs))
+    if (~isfield(o, fvs{i}{1})) o.(fvs{i}{1}) = fvs{i}{2}; end
+  end
 end

@@ -2,6 +2,7 @@ module purge
 
 # option 1, using openmpi 1.8.8 and the default gcc (version 4.8.5). It compile
 module load engaging/openmpi/1.8.8
+module load OpenBLAS/0.2.0
 
 # option 2, using openmpi/3.1.3 which requires gcc 6.3.0. It doesn't compile
 #module load gcc/6.3.0
