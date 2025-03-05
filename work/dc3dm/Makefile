@@ -4,8 +4,8 @@
 # Change these lines to fit your system. fortranint should be 4 or 8 bytes. This
 # was established when you compiled LAPACK and BLAS.
 fortranint = 4
-BLASLIB = /home/rverwijs/openblas/lib/libopenblas.a
-LAPACKLIB = -L/cm/shared/apps/lapack/open64/64/3.5.0 -llapack
+BLASLIB = /cm/shared/apps/blas/open64/1/lib64/libblas.a
+LAPACKLIB = /cm/shared/apps/lapack/open64/64/3.5.0/liblapack.so
 FORTRANLIB = -lgfortran
 
 ifeq ($(debug),1)
@@ -25,7 +25,7 @@ FORTRAN = gfortran
 # Choose serial or OpenMP-parallelized versions. dc3dm does not currently
 # support MPI, but hmmvp does. So if you compile with mode = mpi, libhmmvp_mpi.a
 # is built, but bin/dc3dm is not.
-#mode = p
+#mode = s
 mode = omp
 #mode = mpi
 

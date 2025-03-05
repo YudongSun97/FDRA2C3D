@@ -9,8 +9,7 @@ HMMVPINC = -I external
 HMMVPLIB = external/hmmvp/lib/libhmmvp_$(mode).a
 UTILINC = #-I external/util/include
 UTILLIB = external/util/lib/libutil_$(mode).a
-#BLASLIB = /home/rverwijs/openblas/lib/libopenblas.a
-BLASLIB = -lopenblas
+BLASLIB = /home/camcat/code/lib/lapack-3.2.1/libblas.a
 
 ifeq ($(debug),1)
   db = "_db"
