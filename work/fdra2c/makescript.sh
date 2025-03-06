@@ -7,17 +7,14 @@ module load engaging/openmpi/1.8.8
 #module load gcc/6.3.0
 #module load openmpi/3.1.3
 
-cd external/util/; 
-make clean; 
-make mode=s
-cd ..
+cd external 
 git clone git@github.com:camcat/hmmvp.git
 cd hmmvp
 mkdir lib bin
 make
 cd ../..
 make clean; 
-make mode=s;
-make mode=s add_bc
+make mode=p;
+make mode=p add_bc
 
 ls bin -lh
