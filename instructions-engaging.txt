@@ -18,13 +18,19 @@ BLASLIB = /cm/shared/apps/blas/open64/1/lib64/libblas.a
 However, when I do this I get an error upon compiling. Therefore I downloaded BLAS and I use a local installation instead. Similarly, I use a local installation of lapack.
 
 HMMVP/UTIL: see point 3 below.
-DC3DM: can be downloaded from https://github.com/ambrad/dc3dm.
 
-(3) Compile required libraries: HMMVP and UTIL. For convenience, these can be found in the folder: work/fdra2c/external. Each have two options for compiling: serial and parallel (same options as FDRA). Compile them as follows:
-	(3.1) cd external/util/
-	(3.2) set paths to BLAS and LAPACK into Makefile
-	(3.3) made mode=s OR make mode=p (to compile serial or parallel versions)
-	(3.4) repeat same steps for HMMVP.
+
+(3.1) Compile required libraries: UTIL. For convenience, these can be found in the folder: work/fdra2c/external. Each have two options for compiling: serial and parallel (same options as FDRA). Compile them as follows:
+	(3.1.1) cd external/util/
+	(3.1.2) set paths to BLAS and LAPACK into Makefile
+	(3.1.3) made mode=s OR make mode=p (to compile serial or parallel versions)
+
+(3.2) Download and compile HMMVP. This is a modified version from Andrew's code, with an option to read externally calculated Green's functions.
+	(3.2.1) cd work/fdra2c/external/
+	(3.2.2) git clone git@github.com:camcat/hmmvp.git
+	(3.2.3) mkdir lib bin
+	(3.2.3) make  (note that "mode" is hardwired in the makefile)
+
 
 (4) Back into the fdra2c folder, make sure the HMMVP and UTIL paths are set correctly in the Makefile; clean the folder (this needs to be done especially between serial/parallel compilation) and compile:
 

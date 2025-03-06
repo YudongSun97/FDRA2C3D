@@ -5,8 +5,17 @@
 #     serial with no MPI dependencies
 # Change these lines to fit your system.
 
+
+# HMMVP has one serial and two parallel modes: "omp" and "mpi"
+ifeq ($(mode),"p")
+  mode_hmmvp = "omp"
+else
+  mode_hmmvp = "s"
+endif
+
+
 HMMVPINC = -I external
-HMMVPLIB = external/hmmvp/lib/libhmmvp_$(mode).a
+HMMVPLIB = external/hmmvp/lib/libhmmvp_$(mode_hmmvp).a
 UTILINC = #-I external/util/include
 UTILLIB = external/util/lib/libutil_$(mode).a
 BLASLIB = /home/camcat/code/lib/lapack-3.2.1/libblas.a

@@ -10,9 +10,11 @@ module load engaging/openmpi/1.8.8
 cd external/util/; 
 make clean; 
 make mode=s
-cd ../hmmvp
-make clean; 
-make mode=s;
+cd ..
+git clone git@github.com:camcat/hmmvp.git
+cd hmmvp
+mkdir lib bin
+make
 cd ../..
 make clean; 
 make mode=s;
