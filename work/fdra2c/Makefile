@@ -7,17 +7,14 @@
 
 
 # HMMVP has one serial and two parallel modes: "omp" and "mpi"
-ifeq ($(mode),"p")
-  mode_hmmvp = "omp"
+ifeq ($(mode),p)
+  mode_hmmvp = omp
 else
-  mode_hmmvp = "s"
+  mode_hmmvp = s
 endif
 
-
-HMMVPINC = -I external
+HMMVPINC = -I external/hmmvp
 HMMVPLIB = external/hmmvp/lib/libhmmvp_$(mode_hmmvp).a
-UTILINC = #-I external/util/include
-UTILLIB = external/util/lib/libutil_$(mode).a
 BLASLIB = /home/camcat/code/lib/lapack-3.2.1/libblas.a
 
 ifeq ($(debug),1)
@@ -33,14 +30,13 @@ MPICPP = mpic++
 # The rest should not have to be changed.
 
 CPPSRCS = src/main.cpp src/OdeFn.cpp src/Ode.cpp src/StreamDataFile.cpp	\
-src/Fdra.cpp src/HmatrixStressFn.cpp#\
-/home/camcat/code/ambrad/util/src/ValueSetter.cpp \
-/home/camcat/code/ambrad/util/src/KeyValueFile.cpp \
-/home/camcat/code/ambrad/util/src/Mpi.cpp \
-/home/camcat/code/ambrad/util/src/CodeAnalysis.cpp \
+src/Fdra.cpp src/HmatrixStressFn.cpp \
+external/hmmvp/src/Mpi.cpp external/hmmvp/src/ValueSetter.cpp
 
-INCLUDE = -I src -I include $(HMMVPINC) $(UTILINC)
-LIBS = $(HMMVPLIB) $(UTILLIB) $(BLASLIB) -lgfortran -lgomp
+CPPSRCS_BC = test/add_bc_to_fdra_kvf.cpp external/hmmvp/src/KeyValueFile.cpp
+
+INCLUDE = -I src -I include $(HMMVPINC)
+LIBS = $(HMMVPLIB) $(BLASLIB) -lgfortran -lgomp
 LIBDIRS =
 OPTFLAGS = $(DBFLAGS) $(opt)
 CPPFLAGS = $(OPTFLAGS) #-DANALYZE_CODE
@@ -67,7 +63,7 @@ else
 endif
 
 add_bc:
-	$(CPP) $(CPPFLAGS) $(DBFLAGS) test/add_bc_to_fdra_kvf.cpp $(UTILLIB) $(INCLUDE) -o bin/add_bc_to_fdra_kvf$(db)
+	$(CPP) $(CPPFLAGS) $(DBFLAGS) $(CPPSRCS_BC) $(INCLUDE) -o bin/add_bc_to_fdra_kvf$(db)
 
 fdraclang:
 	clang -fsyntax-only $(INCLUDE) $(CPPSRCS)
