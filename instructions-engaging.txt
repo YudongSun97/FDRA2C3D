@@ -1,9 +1,11 @@
 Note: the script makescript.sh contains many of these steps in a convenient form (but doesn't set paths for you).
 
-(1) load required modules. On the engaging cluster, I can't compile FDRA with the newest MPI version (3.1.3) and I'm working with tech support to fix that. In the meanwhile, we use MPI 1.8.8. Since compiling can be finicky, I suggest purging loaded modules and loading only what you need:
+(1) load required modules and set environment variables. On the engaging cluster, I can't compile FDRA with the newest MPI version (3.1.3) and I'm working with tech support to fix that. In the meanwhile, we use MPI 1.8.8. Since compiling can be finicky, I suggest purging loaded modules and loading only what you need:
 
 module purge 
 module load engaging/openmpi/1.8.8 
+
+export LD_LIBRARY_PATH=/cm/shared/apps/lapack/open64/64/3.5.0:$LD_LIBRARY_PATH
 
 (2) set paths to required libraries in the Makefile.
 fdra2c has the following dependencies:
@@ -15,12 +17,11 @@ BLAS: in theory, it can be loaded as a module:  (module load blas/gcc/64/1) and 
 BLASLIB = /cm/shared/apps/blas/open64/1/lib64/libblas.a
 However, when I do this I get an error upon compiling. Therefore I downloaded BLAS and I use a local installation instead. Similarly, I use a local installation of lapack.
 
-(3.2) Download and compile HMMVP. This is a modified version from Andrew's code, with an option to read externally calculated Green's functions.
-	(3.2.1) cd work/fdra2c/external/
-	(3.2.2) git clone git@github.com:camcat/hmmvp.git
-	(3.2.3) mkdir lib bin
-	(3.2.3) make  (note that "mode" is hardwired in the makefile; parallel by default, edit if serial version required)
-
+(3) Download and compile HMMVP. This is a modified version from Andrew's code, with an option to read externally calculated Green's functions.
+	(3.1) cd work/fdra2c/external/
+	(3.2) git clone git@github.com:camcat/hmmvp.git
+	(3.3) mkdir lib bin
+	(3.4) make mode=s (for serial version) OR make mode=omp (parallel version)
 
 (4) Back into the fdra2c folder, clean the folder (this needs to be done especially between serial/parallel compilation) and compile:
 
@@ -33,25 +34,18 @@ make mode=p add_bc
 
 (6) To set up and run simulations from matlab, you will need functions from these other folders/repositories:
 
-	fdra2c-bp7/work/fdra2c/matlab/
+	your-path-to-fdra2c/work/fdra2c/matlab/
 	https://github.mit.edu/faultmech-mit/matlab-misc (contains auxiliary functions, may or may not be needed)
 	https://github.mit.edu/faultmech-mit/matlab-fdra2c (contains postprocessing functions)
-	https://github.mit.edu/faultmech-mit/seas (contains functions to upload SEAS results)
 
-(7) Here is an example workflow:
+(7) Here is an example workflow to set up a FDRA simulation starting from output files from a MATLAB-based FDRA simulation (fdra1.33)
 
-  (7.1) Start with the matlab script: fdra2c-bp7/work/fdra2c/matlab/bp7.m to create FDRA input. You will need to modify the script by setting up paths to your DC3DM and FDRA2C installations, and a path for the FDRA simulation files. Look at the script to get an idea of how the model is set up. Then call the script (the argument "1" will ensure that DC3DM is run, which calculates Green's functions and compress the matrix):
+  (7.1) Start with the matlab script: work/fdra2c/matlab/q2fdra2c.m to convert between fdra versions. The simulation structures must include Greens functions matrices (this can be set as an option when creating input structures for fdra1.33).
+   Note that the second argument to the function: q2fdra2c is set to 1, which makes the script call HMMVP to compress Green's function matrices.
 
-	s = bp7('setup',1);
+	fn='path-to-your-fdra1.33-simulation';
+	s=q2fdra2c(fn,1);
 
-  (7.2) cd to the FDRA simulation folder. The file "script.sh" contains the commands to add boundary conditions and run the FDRA simulation. You can run the script (prepend "mpirun" if you want to run it in parallel), or copy into a slurm script.
+  (7.2) cd to the FDRA simulation folder. The file "script.sh" contains the commands to run the FDRA simulation. You can run the script (prepend "mpirun" if you want to run it in parallel), or copy into a slurm script.
 
   (7.3) when the simulation is done (or even before it's finished), you can load the files in matlab using the script: matlab-fdra2c/q2load.m. The repo contains other functions that can be used to make plots.
-
-  (7.4) to convert simulations to the format required by SEAS, modify the script: seas_print_bp5.m in the "seas" repository to match BP7. 
-
-
-(8) SEAS benchmark BP7. We can run FDRA simulations in 2 ways: with 1D slip (fixing rake direction) or 2D slip (allowing slip horizontally and vertically). The latter takes much more computing time and memory, and in some cases like a planar strike-slip faults it addes little value. I would like to test both approaches. This can be set in the bp7.m script, by setting the variable: ncomp=1, ncomp=2 respectively. We can then submit both to SEAS.
-
-!! Important. I have not tested 2D slip with MPI, and it may be broken. Since this is a small problem, you will probably be ok running everything with the serial version; or you may want to use the parallel version 1-D slip but not 2-D.
-

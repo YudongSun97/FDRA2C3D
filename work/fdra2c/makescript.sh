@@ -11,10 +11,10 @@ cd external
 git clone git@github.com:camcat/hmmvp.git
 cd hmmvp
 mkdir lib bin
-make
+make mode=s
 cd ../..
-make clean; 
-make mode=p;
-make mode=p add_bc
+make clean
+make mode=s
+make mode=s add_bc
 
 ls bin -lh
