@@ -15,7 +15,9 @@ endif
 
 HMMVPINC = -I external/hmmvp
 HMMVPLIB = external/hmmvp/lib/libhmmvp_$(mode_hmmvp).a
-BLASLIB = /home/camcat/code/lib/lapack-3.2.1/libblas.a
+# BLASLIB = /home/camcat/code/lib/lapack-3.2.1/libblas.a
+# Yudong Mar 7 2025
+BLASLIB = -lopenblas
 
 ifeq ($(debug),1)
   db = "_db"

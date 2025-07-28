@@ -26,14 +26,27 @@ function t = qload_t (cf, fld, stride, do_stride)
   t = SaveStreamData('Read', fn, stride, 1, do_stride);
 end
 
+%Yudong Feb 28 2025
+%add [] after 's' because it misses the second element
 function s = qload (cf, stride, varargin)
-  o = popt(varargin,...
+  % Yudong Mar 19 2025
+  % varargin is optional parameters
+  % which is deprecated now, 
+  % do not use commands like: s = qload (cf, stride, 'want_theta', 1);
+  % TODO: load what you want 
+  o = popts(varargin,...
            {{'do_stride' numel(stride) == 1};
-            {'want_slip' 1}; {'want_theta' 0}; {'want_dlte' 0}; {'want_p' 0};
-            {'want_t' 0}; {'s'}; {'rid' -1}});
+            {'want_slip' 1}; {'want_theta' 1}; {'want_dlte' 0}; {'want_p' 0};
+            {'want_t' 0}; {'s',[]}; {'rid' -1}});
+  % Yudong Mar 19 2025
+  % change to {'want_theta' 1} because we need theta
   o.want_v = 1;
-  if (isempty(o.s)) s = GetGeometry(cf, o.rid);
-  else s = o.s; end
+
+
+  % Yudong temporally comment out the following line, 
+  % because cf.rmesh_filename is not defined, in the cases twosigmas
+  % if (isempty(o.s)) s = GetGeometry(cf, o.rid);
+  % else s = o.s; end
   s.v_creep = cf.v_creep;
 
   function Load (fld)
@@ -61,6 +74,92 @@ function s = qload (cf, stride, varargin)
   s.fn = cf.save_filename;
 end
 
+%Yudong Feb 28 2025
+%add [] after 's' because it misses the second element
+% Yudong May 22 2025
+% use s1 instead of cf, which is s1.fs.cf now
+function s = qload2 (s1, stride, varargin)
+  % Yudong Mar 19 2025
+  % varargin is optional parameters
+  % which is deprecated now, 
+  % do not use commands like: s = qload (cf, stride, 'want_theta', 1);
+  % TODO: load what you want 
+  o = popts(varargin,...
+           {{'do_stride' numel(stride) == 1};
+            {'want_slip' 1}; {'want_theta' 1}; {'want_dlte' 0}; {'want_p' 0};
+            {'want_t' 0}; {'s',[]}; {'rid' -1}});
+  % Yudong Mar 19 2025
+  % change to {'want_theta' 1} because we need theta
+  o.want_v = 1;
+
+
+  % Yudong temporally comment out the following line, 
+  % because cf.rmesh_filename is not defined, in the cases twosigmas
+  % if (isempty(o.s)) s = GetGeometry(cf, o.rid);
+  % else s = o.s; end
+  s.v_creep = s1.fs.cf.v_creep;
+
+  function Load (fld)
+    if (eval(sprintf('o.want_%s', lower(fld))))
+      eval(sprintf('s.t_%s = qload_t(s1.fs.cf, ''%s'', stride, o.do_stride);',...
+                   fld, fld));
+      s.(fld) = SaveStreamData('Read', sprintf('%s_%s.sdf', s1.fs.cf.save_filename,...
+                                               fld),...
+                               stride, [], o.do_stride);
+      s.(fld)(1,:) = [];
+    else
+      eval(sprintf('s.t_%s = [];', fld));
+      s.(fld) = [];
+    end
+  end
+  
+  try
+    Load('v');
+    s.t = s.t_v;
+    Load('slip'); Load('theta'); Load('dlte'); Load('p'); Load('T');
+  catch
+    lasterr
+  end
+  s.stride = stride;
+  s.fn = s1.fs.cf.save_filename;
+
+  % Yudong May 21 2025
+  n = length(s.t);
+  v0 = s1.fs.cf.v0;
+  % get the x coordinates
+  s.x = s1.fs.cf.xc;
+
+  % Yudong June 9 2025
+  s.y = s1.fs.cf.yc;
+  % Yudong Jul 11 2025: use the absolute value of v
+  s.psi = log(abs(s.v)/v0);
+  s.gam = log(s.theta*v0./s1.fs.cf.d_c');
+  s.chi = s.psi + s.gam;        %log v * theta / Dc
+  % effective normal stress
+  s.es = repmat(s1.fs.cf.s_normal',1,n);
+  % mu friction 
+  mu0 = repmat(s1.fs.cf.mu0',1,n);
+  g_tmp = 0.5*exp(s.psi + (mu0 + s1.fs.cf.b'.*s.gam)./s1.fs.cf.a');
+  s.mu = s1.fs.cf.a' .* asinh(g_tmp);
+  if (s1.fs.cf.use_Gn)
+    % Yudong May 30 2025
+    % make it work for uniload and resolve loading
+    if s1.fs.cf.uniload == 0
+    sl = [s.slip; s.t*s.v_creep];
+    Gn = [s1.hm.cc{1,2}.G,s1.fs.cf.hm_bc_n];
+    elseif s1.fs.cf.uniload == 1
+      sl = [s.slip];
+      Gn = [s1.hm.cc{1,2}.G];
+    end
+    s.es = s.es - Gn*sl;
+  elseif (s1.fs.cf.IncludeNormal)
+    s.es = s.es - s1.fs.cf.ndot_o_vcreep'*s.t*s.v_creep;
+  end
+  % Yudong May 22 2025 
+  % calculate the stress 
+  s.tau = sign(s.v).*(s.mu.*s.es + s1.fs.cf.eta*abs(s.v));
+end
+
 function s = CombineQloads (ss)
   assert(iscell(ss) && ~isempty(ss));
   if (len(ss) == 1) s = ss{1}; return; end
@@ -85,6 +184,7 @@ function s = CombineQloads (ss)
     [s.(tf) p] = unique(s.(tf));
     s.(vf) = s.(vf)(:, p);
   end
+  
   Combine('t', 'v');
   Combine('t_slip', 'slip');
   Combine('t_theta', 'theta');
@@ -133,7 +233,7 @@ function MakeGifBig (cf, clim, giffn, is, varargin)
   t = fdra2c('qload_t', cf);
   if (isempty(is)) is = 1:numel(t); end
   t = t(is)/(3600*24);
-  o = popt(varargin, {{'delay' 0},
+  o = popts(varargin, {{'delay' 0},
                       {'fld' 'v'},
                       {'transform' @log10}});
   nis = numel(is);
@@ -205,7 +305,7 @@ function bc = LoadBc (fn, nr)
 end
 
 function [c rs] = rmi_Init (rid, varargin)
-  o = popt(varargin, {{'use_max' 1}});
+  o = popts(varargin, {{'use_max' 1}});
   rs = dc3dm.mRects(rid);
   d = dc3dm.mData(rs);
   if (o.use_max) dx = d.Dx; dy = d.Dy;
@@ -226,7 +326,7 @@ end
 %   fdra2c('vi_Start', s); fdra2c('vi_Start', s, 'fld', 'slip');
 
 function vi_Start (s, varargin)
-  o = popt(varargin, {{'fld' 'v'},
+  o = popts(varargin, {{'fld' 'v'},
                       {'transform' @log10},
                       {'clim', []},
                       {'use_max' 1}});
@@ -561,7 +661,7 @@ function lcodx = GetTrueLcodx (cf)
 end
 
 function c = ixy_Compute (cf, is, varargin)
-  o = popt(varargin, {{'c'}});
+  o = popts(varargin, {{'c'}});
   if (nargin < 2) is = []; end
   if (isempty(is) || numel(is) == 1)
     t = qload_t(cf);
@@ -622,7 +722,7 @@ end
 
 function [h Ix Iy] = ixy_ShowChunk (c, is, varargin)
   if (nargin < 2 || isempty(is)) is = 1:numel(c.t); end
-  o = popt(varargin, {{'n' numel(is)}, {'unit' 'day'}});
+  o = popts(varargin, {{'n' numel(is)}, {'unit' 'day'}});
   unit = TimeUnit(o.unit);
   tlin = linspace(c.t(is(1)), c.t(is(end)), o.n);
   Ix = interp1(c.t(is), c.Ix(:, is).', tlin).';
@@ -636,7 +736,7 @@ function [h Ix Iy] = ixy_ShowChunk (c, is, varargin)
 end
 
 function h = ixy_ShowRaw (c, is, varargin)
-  o = popt(varargin, {{'transform' @log10}});
+  o = popts(varargin, {{'transform' @log10}});
   if (isempty(o.transform)) o.transform = @(x) x; end
   if (nargin < 2 || isempty(is)) is = 1:numel(c.t); end
   img = @(x, I) imagesc(1:numel(is), x*1e-3, o.transform(I));
@@ -651,7 +751,7 @@ function c = ixy_Init (cf, varargin)
   function v = ixy_default_fn (I, X, Y)
     v = mean(I);
   end
-  c = popt(varargin, {{'xlim'}, {'ylim'}, {'nx'}, {'ny'}, ...
+  c = popts(varargin, {{'xlim'}, {'ylim'}, {'nx'}, {'ny'}, ...
                       {'fn' @ixy_default_fn}});
   c.cf = cf;
 
@@ -671,7 +771,7 @@ function c = ixy_Init (cf, varargin)
 end
 
 function [Ix Iy t] = ixy_IntegrateImages (c, is, varargin)
-  o = popt(varargin, {{'fld' 'v'}});
+  o = popts(varargin, {{'fld' 'v'}});
   s = fdra2c('qload', c.cf, is, 'do_stride', 0);
   t = s.t;
   ni = numel(s.t);
@@ -688,7 +788,7 @@ end
 function ixy_AutoShow (c, varargin)
 % This is one way to use c from ixy_Compute, but I'm not at all happy with
 % it. Going to try something more manual next.
-  o = popt(varargin, {{'short' 1}, {'n'}});
+  o = popts(varargin, {{'short' 1}, {'n'}});
   ts = GroupTimes(c.t, o.short);
   if (isempty(o.n)) o.n = ceil(numel(c.t)/numel(ts)); end
   Ix = []; Iy = [];
@@ -865,7 +965,7 @@ function c = TraceSlip (cf, varargin)
     end
   end
   
-  q.o = popt(varargin, {{'yis' []}});
+  q.o = popts(varargin, {{'yis' []}});
   if (isempty(q.o.yis)) error('No y indices specified.'); end
   q.t = fdra2c('qload_t', cf, 'slip');
   s_Map(cf, 1:numel(q.t), @Fn);
@@ -893,7 +993,7 @@ function c = GetDenseAvgV (cf, varargin)
   
   q.rs = dc3dm.mRects(cf.rmesh_filename);
   q.d = dc3dm.mData(q.rs);
-  q.o = popt(varargin, {{'xlim' q.d.xlim}; {'ylim' q.d.ylim}});
+  q.o = popts(varargin, {{'xlim' q.d.xlim}; {'ylim' q.d.ylim}});
   
   q.t = fdra2c('qload_t', cf, 'slip');
   s_Map(cf, 1:numel(q.t), @Fn);
@@ -932,7 +1032,7 @@ function c = FindMaxV (cf, varargin)
 end
 
 function ts_Plot (c, varargin)
-  o = popt(varargin,...
+  o = popts(varargin,...
            {{'nx', 5}});
   uy = unique(c.y);
   is = [];
@@ -950,4 +1050,21 @@ end
 function c = CC (v)
 % Cell-centered from node-centered.
   c = 0.5*(v(1:end-1) + v(2:end));
+end
+
+% Yudong Mar 17 2025
+function o = popts (o, fvs)
+  %Yudong Mar 19 2025
+  % manual overriding the default values is deprecated. TODO: make it work.
+  % if isempty(o)
+      o = struct(); % Reassign an empty structure
+  % end
+
+for (i = 1:numel(fvs))
+      fieldName  = fvs{i}{1};
+      defaultVal = fvs{i}{2};
+      %if ~isfield(o, fieldName)
+          o.(fieldName) = defaultVal;
+      %end
+end
 end

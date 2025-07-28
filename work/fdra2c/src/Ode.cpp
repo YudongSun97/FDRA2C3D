@@ -96,7 +96,11 @@ namespace fdra {
       // 16 is a magic number in matlab's ode23. I have no reason to change it.
       const double hmin = 16.0*_eps*t;
       bool nofailed = true;
-      double tnew, err, h;
+      // Yudong May 08 2025: testing due to zero time step issue
+      // double tnew, err, h;
+      double err, h;
+      DDouble tnew = 0.0;
+
       for (;;) { // Loop for one step
         h = tdir*absh;
         if (t + h > _tf) {

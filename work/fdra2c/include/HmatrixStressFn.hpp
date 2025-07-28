@@ -15,14 +15,17 @@ namespace fdra {
     HmatrixStressFn(const mpi::ArraySegmenter* as, const vector<MpiHmat*>& hm,
                     int ncomp);
     virtual ~HmatrixStressFn();
-
-    virtual bool IncludeNormalComponent() { return false; }
+    //Yudong May 6 2025
+    //virtual bool IncludeNormalComponent() { return false; }
+    virtual bool IncludeNormalComponent () { return _IncludeNormal; }
 
     virtual void Call(int deriv, double t, const real* x,
                       tau_real* tau, tau_real* taun) = 0;
 
   protected:
     virtual int NeedNrwrk() = 0;
+    //Yudong May 6 2025
+    bool _IncludeNormal;
   };
 
   StressFn* NewHmatrixStressFn(const Model* m, KeyValueFile* kvf)

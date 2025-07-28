@@ -24,7 +24,9 @@ public:
     
   HmatrixStressFn (const mpi::ArraySegmenter* as, const vector<MpiHmat*>& hm,
                    int ncomp)
-    : _as(as), _ncomp(ncomp), _hm(hm) {}
+  //Yudong May 6 2025
+  //: _as(as), _ncomp(ncomp), _hm(hm) {}
+    : _as(as), _ncomp(ncomp), _hm(hm), _IncludeNormal(false) {}
   virtual ~HmatrixStressFn();
 
   void SetBc (const vector<real>& bc, real v_creep) {
@@ -34,7 +36,12 @@ public:
   //try-edc
   void SetBcEdc (const vector<real>& bc_edc) { _bc_edc = bc_edc; }
 
-  virtual bool IncludeNormalComponent () { return false; }
+  //Yudong May 2 2025 Set boundary condition for normal stressing (loading)
+  // virtual bool IncludeNormalComponent () { return false; }
+  void SetNormalBc (const vector<real>& bcn, bool IncludeNormal) {
+    _bcn = bcn; _IncludeNormal = IncludeNormal; }
+  virtual bool IncludeNormalComponent () { return _IncludeNormal; }
+
   virtual void Call(int deriv, double t, const real* x,
                     tau_real* tau, tau_real* taun);
     
@@ -49,18 +56,32 @@ protected:
   //try-edc Funky elastic decoupling experiment.
   vector<real> _bc_edc;
 
-  virtual void Mvp(const tau_real* x, tau_real* y) = 0;
+  //Yudong May 2 2025
+  vector<real> _bcn;
+  bool _IncludeNormal;
+
+  // Yudong May 13 2025
+  // To use Green's function for normal stress (Gn), matrix index is 1
+  // Green's function for shear stress (Gs) is matrix index 0
+
+  // virtual void Mvp(const tau_real* x, tau_real* y) = 0;
+  virtual void Mvp(const tau_real* x, tau_real* y, int matrix_index = 0) = 0;
+
 };
 
 HmatrixStressFn::~HmatrixStressFn () {
   for (size_t i = 0; i < _hm.size(); i++) delete _hm[i];
 }
 
+// yudong: This function is used in OdeFn::Call() 
+// tau is shear stress and taun is normal stress
 void HmatrixStressFn::Call (int deriv, double t, const real* x,
                             tau_real* tau, tau_real* taun) {
   const int my_n = _as->GetN();
-  if (!tau) return;
 
+  // Yudong May 2 2025, !tau means we are not interested in shear stress, 
+  // if (!tau) return;
+  
   const tau_real* xc;
   if (sizeof(tau_real) == sizeof(real))
     xc = (tau_real*) x;
@@ -70,18 +91,51 @@ void HmatrixStressFn::Call (int deriv, double t, const real* x,
     for (int i = 0; i < my_n; i++) xs[i] = (tau_real) x[i];
     xc = _call_rwrk.GetPtr();
   }
-  Mvp(xc, tau);
 
-  //Add loading term
-  if (!_bc.empty()) {
-    if (deriv == 1) t = 1;
-    real s = _scale*t*_v_creep;
-    for (int i = 0; i < my_n; i++) tau[i] = _scale*tau[i] + s*_bc[i];
-    //try-edc
-    if (!_bc_edc.empty())
-      for (int i = 0; i < my_n; i++) tau[i] += _bc_edc[i]*x[i];
-  } else {
-    for (int i = 0; i < my_n; i++) tau[i] *= _scale;
+  //Yudong May 2 2025 implement normal stress taun
+  if (taun) {
+    // Yudong May 6 2025 testing: do not need this
+    // Mvp(xc, taun);
+
+    // Add loading term
+    if (!_bcn.empty()) {
+
+      // Yudong May 13 2025
+      if (_hm.size() == 1) {
+        // deriv == 1 means we're doing a time derivative and using it for v.
+        if (deriv == 1) t = 1;
+        real s = _scale*t*_v_creep;
+        // Yudong comments: add loading from boundary condition. _bcn is a Green's function
+        //Yudong May 6 2025 testing: taun starts from 0
+        // for (int i = 0; i < my_n; i++) taun[i] = _scale*taun[i] + s*_bcn[i];
+        for (int i = 0; i < my_n; i++) taun[i] = s*_bcn[i];
+      } else if (_hm.size() > 1) {
+        Mvp(xc, taun,1);  // Calculate normal stress from H-matrix
+        if (deriv == 1) t = 1;
+        real s = _scale*t*_v_creep;
+        for (int i = 0; i < my_n; i++) taun[i] = _scale*taun[i] + s*_bcn[i];
+      }
+    } else {
+      for (int i = 0; i < my_n; i++) taun[i] *= _scale;
+    }
+  }
+  // Yudong May 2 2025,
+  if (tau) {
+    Mvp(xc, tau);
+
+    //Add loading term
+    if (!_bc.empty()) {
+      // deriv == 1 means we're doing a time derivative and using it for v.
+      if (deriv == 1) t = 1;
+      real s = _scale*t*_v_creep;
+      // Yudong comments: add loading from boundary condition. _bc is a Green's function
+      for (int i = 0; i < my_n; i++) tau[i] = _scale*tau[i] + s*_bc[i];
+      //try-edc
+      if (!_bc_edc.empty())
+        for (int i = 0; i < my_n; i++) tau[i] += _bc_edc[i]*x[i];
+    } else {
+      for (int i = 0; i < my_n; i++) tau[i] *= _scale;
+    }
   }
 }
 
@@ -91,7 +145,10 @@ public:
              int ncomp);
 
 private:
-  virtual void Mvp(const tau_real* x, tau_real* y);
+  // Yudong May 13 2025
+  // Added matrix_index parameter
+  // virtual void Mvp(const tau_real* x, tau_real* y);
+  virtual void Mvp(const tau_real* x, tau_real* y, int matrix_index = 0);
 };
 
 VanillaHsf::VanillaHsf (const mpi::ArraySegmenter* as,
@@ -99,10 +156,30 @@ VanillaHsf::VanillaHsf (const mpi::ArraySegmenter* as,
   : HmatrixStressFn(as, hm, ncomp)
 {
   int n = _hm[0]->GetM();
-  if (mpi::AmRoot()) n *= 2;
+
+  // Yudong May 13 2025
+  // If we have a second H-matrix, ensure we have enough space for it too
+  if (_hm.size() > 1) {
+    // Take the maximum size needed by either matrix
+    n = std::max(n, (int)_hm[1]->GetM());
+  }
+
+  // Yudong May 13 2025
+  // if (mpi::AmRoot()) n *= 2;
+  if (mpi::AmRoot()) {
+    if (_hm.size() > 1) {
+      n *= 4;  // For two matrices: x_full, y_full for each matrix
+    } else {
+      n *= 2;  // Original allocation for one matrix
+    }
+  }
+
   _rwrk.Reset(n);
 }
 
+// Yudong May 13 2025
+// This is the original Mvp function
+/*
 void VanillaHsf::Mvp (const tau_real* x, tau_real* y) {
   _rwrk.Reset();
   const int ntotc = _hm[0]->GetM();
@@ -117,6 +194,37 @@ void VanillaHsf::Mvp (const tau_real* x, tau_real* y) {
   // y_full is only valid on the root, so scatter the pieces.
   _as->Scatter(y_full, y, mpi::Root(), _ncomp);
 }
+*/
+
+// Yudong May 13 2025
+// This is the new Mvp function with matrix_index parameter
+void VanillaHsf::Mvp (const tau_real* x, tau_real* y, int matrix_index) {
+  // Check for valid matrix index
+  if (matrix_index < 0 || matrix_index >= static_cast<int>(_hm.size())) {
+    if (mpi::AmRoot())
+      fprintf(stderr, "Invalid matrix index: %d\n", matrix_index);
+    return;
+  }
+
+  _rwrk.Reset();
+  const int ntotc = _hm[matrix_index]->GetM();
+  bool am_root = mpi::AmRoot();
+
+  // I'm using permutations, so x_full has to be valid only on the root.
+  tau_real* x_full = NULL;
+  if (am_root) x_full = _rwrk.AllocWork(ntotc);
+  _as->Gather(x, x_full, mpi::Root(), _ncomp);
+  
+  // y_full has to be allocated on all nodes, but it's valid only on the root.
+  tau_real* y_full = _rwrk.AllocWork(ntotc);
+  
+  // Use the specified matrix index
+  _hm[matrix_index]->Mvp(x_full, y_full, 1);
+  
+  // y_full is only valid on the root, so scatter the pieces.
+  _as->Scatter(y_full, y, mpi::Root(), _ncomp);
+}
+// Yudong May 13 2025
 
 class SymDomainHsf : public HmatrixStressFn {
 public:
@@ -127,7 +235,10 @@ public:
 private:
   vector<int> _p, _q;
 
-  virtual void Mvp(const tau_real* x, tau_real* y);
+  // Yudong May 13 2025
+  // Added matrix_index parameter
+  // virtual void Mvp(const tau_real* x, tau_real* y);
+  virtual void Mvp(const tau_real* x, tau_real* y, int matrix_index = 0);
 };
 
 #define DO_PERMUTE 0
@@ -167,6 +278,16 @@ SymDomainHsf::SymDomainHsf (
   const vector<int>& p, const vector<int>& q1, const vector<int>& q2)
   : HmatrixStressFn(as, hm, ncomp)
 {
+
+// Yudong May 13 2025
+// TODO: implement function for more than one H-matrix for SymDomainHsf
+if (_hm.size() > 1) {
+  if (mpi::AmRoot())
+    fprintf(stderr, "SymDomainHsf: Only one H-matrix is supported for now.\n");
+  return;
+}
+
+
 #if !DO_PERMUTE
   _hm[0]->TurnOffPermute();
 #endif
@@ -207,10 +328,18 @@ SymDomainHsf::SymDomainHsf (
   Ca::GetTimer()->Reset(20);
 }
 
-void SymDomainHsf::Mvp (const tau_real* x, tau_real* y) {
+// Yudong May 13 2025
+// TODO: Added matrix_index parameter and check if it work for SymDomainHsf
+//void SymDomainHsf::Mvp (const tau_real* x, tau_real* y) {
+void SymDomainHsf::Mvp (const tau_real* x, tau_real* y, int matrix_index) {
+
   Ca::GetTimer()->Tic(catmr_hsf_mvp);
   _rwrk.Reset();
-  const int ntot = _hm[0]->GetN();
+
+  // Yudong May 13 2025 
+  // const int ntot = _hm[0]->GetN();
+  const int ntot = _hm[matrix_index]->GetN();
+  
   bool am_root = mpi::AmRoot();
   // Gather domain-ordered x onto root. We'll do the whole permutation to
   // H-matrix ordering here. Probably better than parallelizing the
@@ -235,7 +364,11 @@ void SymDomainHsf::Mvp (const tau_real* x, tau_real* y) {
   Ca::GetTimer()->Toc(catmr_hsf_comm);
   // MVP time.
   tau_real* y_full_p = x_full;
-  _hm[0]->Mvp(x_full_p, y_full_p, 2);
+
+  // Yudong May 13 2025
+  // _hm[0]->Mvp(x_full_p, y_full_p, 2);
+  _hm[matrix_index]->Mvp(x_full_p, y_full_p, 2);
+
   // Permute back to domain ordering. y has two columns of length ntot/2. Each
   // represents half the domain. Interpret it as one vector of length
   // ntot. _p threads them together.
@@ -276,6 +409,9 @@ StressFn* NewHmatrixStressFn (const Model* m, KeyValueFile* kvf) {
   hm.reserve(4);
   try {
     hm.push_back(new MpiHmat(hm_fn + string("_comp11.hmat"), ncol));
+
+    
+
     if (hm[0]->GetN() != m->GetArraySegmenter()->GetNtot() * m->GetNcomp()) {
       delete hm[0];
       if (mpi::AmRoot())
@@ -283,6 +419,29 @@ StressFn* NewHmatrixStressFn (const Model* m, KeyValueFile* kvf) {
                 "with model size.\n");
       return NULL;
     }
+    // Yudong May 13 2025
+    // try to read in the second H-matrix
+    try {
+      // read in the second H-matrix (Green's function for normal stress Gn)
+      hm.push_back(new MpiHmat(hm_fn + string("_comp1n.hmat"), ncol));
+
+      // Yudong May 13 2025
+      // check if the second H-matrix size agrees with model size
+      if (hm.size() > 1) {
+        if (hm[1]->GetN() != m->GetArraySegmenter()->GetNtot() * m->GetNcomp()) {
+          delete hm[1];
+          if (mpi::AmRoot())
+            fprintf(stderr, "NewHmatrixStressFn: the second H-matrix size does not agree "
+                  "with model size.\n");
+          return NULL;
+        }
+      }
+    } catch (const Exception& fe2) {
+    // Just print a warning and continue with only the first matrix
+    if (mpi::AmRoot())
+      fprintf(stderr, "Warning: Could not load second H-matrix (Gn for normal stress): %s\nContinuing with only one matrix.\n", fe2.GetMsg().c_str());
+    }
+
   } catch (const Exception& fe) {
     if (mpi::AmRoot())
       fprintf(stderr, "MpiHmat gave this exception: %s\n", fe.GetMsg().c_str());
@@ -312,8 +471,15 @@ StressFn* NewHmatrixStressFn (const Model* m, KeyValueFile* kvf) {
     vs.SetScalar("hm_scale", scale, (real) 1.0);
     sf->SetScale(scale);
     vector<real> bc;
+    // Yudong May 2 2025
+    vector<real> bcn;
+    int ok2;
+    bool IncludeNormal;
+    vs.SetScalar("IncludeNormal", IncludeNormal, false);
+
     int uniload, ok;
     vs.SetScalar("uniload", uniload, (int) 0);
+
     //if uniload==1 (uniform loading), set bc to "tdot_o_vcreep"
     //Later loading will be calculated as: taudot = _bc*_vcreep
     if (uniload) ok=vs.SetArray("tdot_o_vcreep", bc);
@@ -331,6 +497,22 @@ StressFn* NewHmatrixStressFn (const Model* m, KeyValueFile* kvf) {
     }
     if (vs.SetArray("hm_bc_edc", bc, m->GetNcomp()))
       sf->SetBcEdc(bc);
+
+    // Yudong May 2 2025, Include loading in the normal direction from BC
+    if (IncludeNormal) {
+      if (uniload) ok2=vs.SetArray("ndot_o_vcreep", bcn);
+      else ok2=vs.SetArray("hm_bc_n", bcn, m->GetNcomp());
+      if (ok2)
+        sf->SetNormalBc(bcn, IncludeNormal);
+      else {
+        delete sf;
+        if (mpi::AmRoot())
+          if (uniload) fprintf(stderr, "NewHmatrixStressFn: No ndot_o_vcreep.\n");
+          else fprintf(stderr, "NewHmatrixStressFn: No hm_bc_n.\n");
+        return NULL;
+      }
+    }
+
   }
 
   return sf;
