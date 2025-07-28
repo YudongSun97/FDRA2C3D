@@ -24,9 +24,11 @@ function e = env(e)
 
   % e.fdra1_dir = '/home/yudong/orcd/c7/pool/2_5D/fdra1.33';
   e.fdra1_dir = '/home/yudong/FDRA_multisegment/fdra1.33';
-  e.work_dir = '/home/yudong/FDRA2C_external_GF/fdra2c/work';
-  e.scratch_dir = '/nfs/camcat001/yudong/fdra2c/external_GF/test12';
-  e.hmmvp_dir = '/home/yudong/FDRA2C_external_GF/fdra2c/work/fdra2c/external/hmmvp';
+  % Yudong Jul 28 2025, change the e.work_dir to a directory where you want to run fdra2c
+  % e.work_dir = '/home/yudong/FDRA2C_external_GF/fdra2c/work';
+  e.work_dir = '/nfs/camcat001/yudong/codes/fdra2c_yudong_extern_gf_v1_0/fdra2c/work';
+  e.scratch_dir = '/nfs/camcat001/yudong/fdra2c/yudong_extern_gf_v1_0/test000';
+  e.hmmvp_dir = '/nfs/camcat001/yudong/codes/fdra2c_yudong_extern_gf_v1_0/fdra2c/work/fdra2c/external/hmmvp';
   
 
   e.dec='v2';

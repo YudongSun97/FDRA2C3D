@@ -8,27 +8,15 @@
 #include "OdeFn.hpp"
 using namespace util;
 
-// Yudong Jul 8 2025: Sign function template
-template<typename T>
-int sign(T x) {
-    return (x < 0) ? -1 : 1;
-}
-
 namespace fdra {
 void CalcFriction (Model::EvolutionLaw el, real mu0, real a, real b,
                    real v_o_v0, real theta_v0_o_dc,
                    real* mu, real* mu_psi, real* mu_gamma) {
-  // Yudong Jul 8 2025: To use the absolute value of v_o_v0
-  real v_o_v0_abs = abs(v_o_v0);
-  // real g = 0.5 * v_o_v0 * exp((mu0 + b*log(theta_v0_o_dc))/a);
-  real g = 0.5 * v_o_v0_abs * exp((mu0 + b*log(theta_v0_o_dc))/a);
-
+  real g = 0.5 * v_o_v0 * exp((mu0 + b*log(theta_v0_o_dc))/a);
   *mu = a * asinh(g);
   if (mu_psi || mu_gamma) {
     //These terms are related to the time derivative of *regularized* friction
     real gasinhg_g = g / sqrt(g*g + 1);
-    // Yudong comments: mu_psi and mu_gamma are d mu / d psi and d mu / d gamma, 
-    // psi = log (v /v0) and gamma = log (v theta / d_c)
     if (mu_psi)   *mu_psi   = a * gasinhg_g;
     if (mu_gamma) *mu_gamma = b * gasinhg_g;
   }
@@ -42,19 +30,13 @@ void CalcFriction (Model::EvolutionLaw el, real mu0, real a, real b,
   //     psibar   = -log(v1 / v         + 1);
   //     gammabar =  log(v2 theta / d_c + 1);
   // Do some conversions and then use the regular CalcFriction routine.
-  // Yudong Jul 8 2025: To use the absolute value of v_o_v0
-  real v_o_v0_abs = abs(v_o_v0);
-  // real v_o_v0_standin = 1.0 / (v1 / (v0 * v_o_v0) + 1.0);
-  real v_o_v0_standin = 1.0 / (v1 / (v0 * v_o_v0_abs) + 1.0);
+  real v_o_v0_standin = 1.0 / (v1 / (v0 * v_o_v0) + 1.0);
   real theta_v0_o_dc_standin = v2 * theta_v0_o_dc / v0 + 1;
   CalcFriction(el, mu0, a, b, v_o_v0_standin, theta_v0_o_dc_standin,
                mu, mu_psi, mu_gamma);
   // At this point, mu_psi and mu_gamma are actually mu_psibar and
   // mu_gammabar. Convert.
-  // Yudong Jul 10 2025
-  // *mu_psi *= 1.0 / (1.0 + v0 * v_o_v0 / v1);
-  *mu_psi *= 1.0 / (1.0 + v0 * v_o_v0_abs / v1);
-
+  *mu_psi *= 1.0 / (1.0 + v0 * v_o_v0 / v1);
   *mu_gamma *= theta_v0_o_dc / (theta_v0_o_dc + v0 / v2);
 }
 
@@ -62,19 +44,13 @@ void CalcFriction (Model::EvolutionLaw el, real mu0, real a, real b,
 void EvolveState (Model::EvolutionLaw el, real v0, real d_c,
                   real v_o_v0, real theta_v0_o_dc,
                   real* thetad_o_theta) {
-  // Yudong Jul 8 2025: To use the absolute value of v_o_v0
-  real v_o_v0_abs = abs(v_o_v0);
   switch (el) {
   case Model::el_Aging: {
-    // Yudong Jul 8 2025
-    // *thetad_o_theta = v0/d_c * (1.0/theta_v0_o_dc - v_o_v0);
-    *thetad_o_theta = v0/d_c * (1.0/theta_v0_o_dc - v_o_v0_abs);
+    *thetad_o_theta = v0/d_c * (1.0/theta_v0_o_dc - v_o_v0);
     break;
   }
   case Model::el_Slip: {
-    // Yudong Jul 8 2025
-    // real echi = v_o_v0 * theta_v0_o_dc;
-    real echi = v_o_v0_abs * theta_v0_o_dc;
+    real echi = v_o_v0 * theta_v0_o_dc;
     *thetad_o_theta = -echi * log(echi) *(v0 / (d_c * theta_v0_o_dc));
     break;
   }
@@ -193,7 +169,6 @@ int OdeFn::GetN () {
   return 2*_m->n() + _m->nelem() + (_m->use_only_theta() ? 0 : _m->nelem());
 }
 
-// Yudong comments: get initial conditions
 void OdeFn::GetIc (real* y) {
   int nelem = _m->nelem(), n = _m->n();
   memcpy(y, _m->slip_init(), n*sizeof(real));
@@ -201,9 +176,7 @@ void OdeFn::GetIc (real* y) {
   real* theta_v0_o_dc = v_o_v0 + n;
   for (int i = 0; i < n; i++) {
     v_o_v0[i] = _m->v_init(i) / _m->v0(i);
-    // Yudong Jul 10 2025: To use the absolute value of v_o_v0
-    // theta_v0_o_dc[i] = exp(_m->chi_init(i)) / v_o_v0[i];
-    theta_v0_o_dc[i] = exp(_m->chi_init(i)) / abs(v_o_v0[i]);
+    theta_v0_o_dc[i] = exp(_m->chi_init(i)) / v_o_v0[i];
   }
   if (!_m->use_only_theta()) {
     real* dlte = theta_v0_o_dc + nelem;
@@ -355,8 +328,7 @@ Call (double t, double dt, const real* y, real* yd, bool& is_error) {
 
   Ca::GetTimer()->Tic(catmr_odefn_tau);
   const bool inc = _m->stress_fn()->IncludeNormalComponent();
-
-  /* tau_real *taun = NULL, *taund = NULL;
+  tau_real *taun = NULL, *taund = NULL;
   if (inc) {
     _trwrk.Reset(n + 2*nelem);
     taun  = _trwrk.AllocWork(nelem);
@@ -364,31 +336,7 @@ Call (double t, double dt, const real* y, real* yd, bool& is_error) {
     _m->stress_fn()->Call(0, t, _osv.slip, NULL, taun);
   } else {
     _trwrk.Reset(n);
-  } */
-  //Yudong Jul 8 2025: add tau array
-  tau_real *taun = NULL, *taund = NULL, *tau = NULL;
-  if (!inc) {
-    _trwrk.Reset(2*n);
-    tau = _trwrk.AllocWork(n);
-    _m->stress_fn()->Call(0, t, _osv.slip, tau, NULL);
-  } else {
-    _trwrk.Reset(2*n + 2*nelem);
-    taun  = _trwrk.AllocWork(nelem);
-    taund = _trwrk.AllocWork(nelem);
-    tau = _trwrk.AllocWork(n);
-    _m->stress_fn()->Call(0, t, _osv.slip, tau, taun);
   }
-  
-  // Yudong Jul 11 2025: calculate initial values of tau: |tau_el| = tau_f + eta * |v|
-  for (int i = 0; i < nelem; i++) {
-    real mu_init, tau_init;
-    CalcFriction(_m->GetEvolutionLaw(), _m->mu0(i), _m->a(i), _m->b(i), _m->v_init(i) / _m->v0(i),
-                 exp(_m->chi_init(i)) / _m->v_init(i) * _m->v0(i), &mu_init, NULL, NULL);
-    tau_init = sign(_m->v_init(i)) * (mu_init * _m->s_normal(i) + _m->eta(i) * abs(_m->v_init(i)));
-    tau[i] += tau_init;
-    v[i] = sign(tau[i]) * abs(v[i]);
-  }
-
   tau_real* taud = _trwrk.AllocWork(n);
   _m->stress_fn()->Call(1, t, v, taud, taund);
   Ca::GetTimer()->Toc(catmr_odefn_tau);
@@ -403,8 +351,6 @@ Call (double t, double dt, const real* y, real* yd, bool& is_error) {
     CalcFriction(_m, _osv, i, &mu, &mu_psi, &mu_gamma);
     es = _m->s_normal(i);
     esd = 0.0;
-    
-    
     if (inc) {
       es -= taun[i];
       esd = -taund[i];
@@ -424,21 +370,9 @@ Call (double t, double dt, const real* y, real* yd, bool& is_error) {
     slip_d[i] = v[i];
     EvolveState(_m->GetEvolutionLaw(), _m->v0(i), _m->d_c(i), _osv.v_o_v0[i],
                 _osv.theta_v0_o_dc[i], &thetad_o_theta);
-    // Yudong Jul 8 2025, add signs, |tau_el| = tau_f + eta * |v|
-    /* v_o_v0_d[i] = _osv.v_o_v0[i] *
+    v_o_v0_d[i] = _osv.v_o_v0[i] *
       (taud[i] - mu*esd - es*mu_gamma*thetad_o_theta) /
-      (mu_psi*es + _m->eta(i)*v[i]); */
-    // Yudong Jul 11 2025: original version 
-    v_o_v0_d[i] = sign(tau[i]) * abs(_osv.v_o_v0[i]) *
-      (sign(tau[i])*taud[i] - mu*esd - es*mu_gamma*thetad_o_theta) /
-      (mu_psi*es + _m->eta(i)*abs(v[i]));
-    // Yudong Jul 11 2025: test version: NOT WORKING
-    //to account for the change of sign of v_o_v0 
-    // when calculating the time derivative of v_o_v0
-    /* v_o_v0_d[i] = (sign(tau[i]) * abs(_osv.v_o_v0[i]) - _osv.v_o_v0[i]) / dt +
-      sign(tau[i]) * abs(_osv.v_o_v0[i]) *
-      (sign(tau[i])*taud[i] - mu*esd - es*mu_gamma*thetad_o_theta) /
-      (mu_psi*es + _m->eta(i)*abs(v[i])); */
+      (mu_psi*es + _m->eta(i)*v[i]);
     theta_v0_o_dc_d[i] = _osv.theta_v0_o_dc[i] * thetad_o_theta;
     if (_m->use_dilatancy())
       dlte_v0_o_dc_d[i] = (_osv.dlte_v0_o_dc[i] * (es / bes) *
