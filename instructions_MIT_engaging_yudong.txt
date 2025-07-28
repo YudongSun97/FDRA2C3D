@@ -1,11 +1,16 @@
 Yudong Sun July 28 2025
 How to install fdra2c on MIT engaging cluster? (It's not hard at all!)
+Step by Step Instruction
 
-(1) log in using orcd-vlogin001 (the older Centos 7)
+(1) log in using orcd-vlogin001 (the older Centos 7) and assign your nodes
 $ ssh -X yudong@orcd-vlogin001.mit.edu
 	References: https://orcd-docs.mit.edu/accessing-orcd/ssh-login/
+$ srun -N 1 -n 8 -p sched_mit_erl --time 12:00:00 --mem 250000 --x11 --pty bash
+	Notes: -n [TASK_NUMBER], or on sched_mit_camcat
 
 (2) git clone my branch 
+$ cd MyFolder
+	Notes: go to a directory named MyFolder (or whatever you like to call it)
 $ git clone -b yudong_extern_gf_v1_0 https://github.com/camcat/fdra2c.git
 	Notes: you may type in your username and Personal access tokens (classic)
 	References: https://github.com/settings/tokens
@@ -14,5 +19,52 @@ $ git clone -b yudong_extern_gf_v1_0 https://github.com/camcat/fdra2c.git
 $ cd fdra2c/work/fdra2c/external
 $ git clone git@github.com:camcat/hmmvp.git
 $ mkdir lib bin
- 
+	Notes: no need to do this step if you have hmmvp!
 
+(4) Compile hmmvp
+$ module load engaging/openmpi/1.8.8
+$ make mode=omp
+	Notes: make mode=s (for serial version) OR make mode=omp (parallel version)
+
+(5) Compile fdra2c
+$ cd ../..
+	Notes: now you are at MyFolder/fdra2c/work/fdra2c 
+$ module load OpenBLAS/0.2.0
+$ make clean
+	Notes: to clean all the *.o files, no need to do this if not complied before
+$ make mode=p
+$ make mode=p add_bc
+	Notes: make mode=s (for serial version) OR make mode=p (parallel version)
+
+(6) Modify q2fdra2c.m in MyFolder/fdra2c/work/fdra2c/matlab/012_real_rough
+	Notes: 1. change all the directories 
+	       2. change the number of tasks to use (e.g. 32)
+
+
+(7) Extract input file for fdra2c from MatLab FDRA
+$ cd matlab/012_real_rough 
+$ module load gcc/9.3.0 lapack/open64/64/3.5.0 mit/matlab/2022a
+$ matlab -nodesktop -nosplash
+	Notes: open MatLab
+>> addpath /home/yudong/FDRA_multisegment/fdra1.33/output/real_roughness
+	Notes: where I put my MatLab FDRA simulation results 
+>> fn='roughtest_rough_b0.020_a0.015';
+>> s=q2fdra2c(fn,1);
+	Notes: Everything you need to run fdra2c is written under a folder (e.g. MySimulations/test000)
+
+(8) Run fdra2c and reccord the running time
+$ cd MySimulations/test000
+$ vi script.sh
+	Notes: add 'time mpirun -np 4' in the beginning of the first line
+	       with this we time the code running on 4 processes
+$ chmod 777 script.sh
+	Notes: make it excutable
+$ ./script.sh
+
+(9) Load your simulation results and visualize
+$ cd MyFolder/fdra2c/work/fdra2c/matlab/012_real_rough
+	Notes: change the directory in vis2.m if needed
+$ vis2
+	Notes: struct q and q2 contain the simulation results
+$ figure;imagesc(log10(q.v));
+$ figure;imagesc(q2.es);
