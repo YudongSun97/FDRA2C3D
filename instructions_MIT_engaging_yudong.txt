@@ -1,0 +1,18 @@
+Yudong Sun July 28 2025
+How to install fdra2c on MIT engaging cluster? (It's not hard at all!)
+
+(1) log in using orcd-vlogin001 (the older Centos 7)
+$ ssh -X yudong@orcd-vlogin001.mit.edu
+	References: https://orcd-docs.mit.edu/accessing-orcd/ssh-login/
+
+(2) git clone my branch 
+$ git clone -b yudong_extern_gf_v1_0 https://github.com/camcat/fdra2c.git
+	Notes: you may type in your username and Personal access tokens (classic)
+	References: https://github.com/settings/tokens
+
+(3) git clone hmmvp if not existing under fdra2c/work/fdra2c/external
+$ cd fdra2c/work/fdra2c/external
+$ git clone git@github.com:camcat/hmmvp.git
+$ mkdir lib bin
+ 
+
