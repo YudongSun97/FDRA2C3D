@@ -12,9 +12,9 @@ function e = env(e)
     % scratch_dir: directory for output files
     % hmmvp_dir: directory containing hmmvp (H-matrix compression)
   
-    e.work_dir = '/home/yudong/FDRA2C_external_GF/fdra2c/work';
-    e.scratch_dir = '/nfs/camcat001/yudong/fdra2c/external_GF/test19';
-    e.hmmvp_dir = '/home/yudong/FDRA2C_external_GF/fdra2c/work/fdra2c/external/hmmvp';
+    e.work_dir = '/home/users/yudongs/FDRA2C/fdra2c/work';
+    e.scratch_dir = '/home/users/yudongs/fdra2c/test19';
+    e.hmmvp_dir = '/home/users/yudongs/FDRA2C/fdra2c/work/fdra2c/external/hmmvp';
     
     e.dec='v2';
     e.suffix='';
