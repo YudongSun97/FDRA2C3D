@@ -11,10 +11,10 @@
 # Change these lines to fit your system. fortranint should be 4 or 8 bytes. This
 # was established when you compiled LAPACK and BLAS.
 fortranint = 4
-#BLASLIB = /home/camcat/code/lib/lapack-3.2.1/libblas.a
-#LAPACKLIB = /home/camcat/code/lib/lapack-3.2.1/liblapack.so
-BLASLIB = /cm/shared/apps/blas/open64/1/lib64/libblas.a
-LAPACKLIB = /cm/shared/apps/lapack/open64/64/3.5.0/liblapack.so
+#BLASLIB = /cm/shared/apps/blas/open64/1/lib64/libblas.a
+#LAPACKLIB = /cm/shared/apps/lapack/open64/64/3.5.0/liblapack.so
+BLASLIB = -lblas
+LAPACKLIB  = -llapack
 FORTRANLIB = -lgfortran
 
 CPP = g++ -w
