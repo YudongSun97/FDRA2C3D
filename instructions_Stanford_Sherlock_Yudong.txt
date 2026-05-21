@@ -1,0 +1,68 @@
+nstruction FDRA2C Stanford
+
+Yudong Sun May 19 2026
+How to install fdra2c on Stanford Sherlock cluster? 
+Step by Step Instruction
+
+(1) log in 
+$ ssh yudongs@login.sherlock.stanford.edu 
+$ salloc -p serc -N 1 -n 8 -t 12:00:00 --mem=128G bash
+
+(2) git clone my branch 
+$ module load git
+$ cd /home/users/yudongs/FDRA2C
+	Notes: go to a directory named FDRA2C (or whatever you like to call it)
+$ git clone https://github.com/YudongSun97/FDRA2C3D.git
+
+(3) git clone hmmvp if not existing under fdra2c/work/fdra2c/external
+$ cd fdra2c/work/fdra2c/external
+$ git clone git@github.com:camcat/hmmvp.git
+Notes: no need to do this step if you have hmmvp!
+$ cd hmmvp
+$ mkdir lib bin
+	
+(4) Compile hmmvp
+$ vi Makefile
+Change to:
+BLASLIB = -lblas
+LAPACKLIB  = -llapack
+$ module load openblas
+$ module load openmpi/2.0.2
+$ make mode=omp
+	Notes: make mode=s (for serial version) OR make mode=omp (parallel version)
+
+(5) Compile fdra2c
+$ cd ../..
+$ make clean
+	Notes: to clean all the *.o files, no need to do this if not compiled before
+$ make mode=p
+$ make mode=p add_bc
+	Notes: make mode=s (for serial version) OR make mode=p (parallel version)
+
+(6) Modify fs_2_5d_multifault_q2fdra2c.m in /home/users/yudongs/FDRA2C/fdra2c/work/fdra2c/matlab/019_3_faults_25D_vertical_integral
+	Notes: 1. change all the directories 
+	       2. change the number of tasks to use (e.g. 32)
+
+(7) compile Okada mex code
+$ cd matlab
+$ module load matlab
+$ matlab -nodesktop -nosplash -nojvm
+>> mex disloc3d.F dc3d.f
+
+(8) Generate input file for fdra2c
+>> s=fs_2_5d_multifault_q2fdra2c(1);
+
+(9) Run fdra2c 
+$ cd /home/users/yudongs/fdra2c/test19
+$ chmod 777 script.sh
+	Notes: make it executable
+$ ./script.sh
+
+(10) Load your simulation results and visualize
+$ cd /home/users/yudongs/FDRA2C/fdra2c/work/fdra2c/matlab/019_3_faults_25D_vertical_integral
+	Notes: change the directory in vis2.m if needed
+$ vis2
+	Notes: struct q and q2 contain the simulation results
+$ figure;imagesc(log10(q.v));
+$ figure;imagesc(q2.es);
+
