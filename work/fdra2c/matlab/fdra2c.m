@@ -139,8 +139,13 @@ function s = qload2 (s1, stride, varargin)
   s.es = repmat(s1.fs.cf.s_normal',1,n);
   % mu friction 
   mu0 = repmat(s1.fs.cf.mu0',1,n);
-  g_tmp = 0.5*exp(s.psi + (mu0 + s1.fs.cf.b'.*s.gam)./s1.fs.cf.a');
-  s.mu = s1.fs.cf.a' .* asinh(g_tmp);
+  % Yudong: 2026-06-15
+  % g_tmp = 0.5*exp(s.psi + (mu0 + s1.fs.cf.b'.*s.gam)./s1.fs.cf.a');
+  e_tmp = s.psi + (mu0 + s1.fs.cf.b'.*s.gam)./s1.fs.cf.a';
+  s.mu = asinh(0.5*exp(e_tmp));
+  s.mu(~isfinite(s.mu)) = e_tmp(~isfinite(s.mu)); 
+  s.mu = s1.fs.cf.a' .* s.mu;
+
   if (s1.fs.cf.use_Gn)
     % Yudong May 30 2025
     % make it work for uniload and resolve loading

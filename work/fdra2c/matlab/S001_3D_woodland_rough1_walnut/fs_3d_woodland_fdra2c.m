@@ -13,7 +13,7 @@ function e = env(e)
     % hmmvp_dir: directory containing hmmvp (H-matrix compression)
   
     e.work_dir = '/home/users/yudongs/FDRA2C/fdra2c/work';
-    e.scratch_dir = '/home/users/yudongs/fdra2c/tests000';
+    e.scratch_dir = '/home/users/yudongs/fdra2c/tests001';
     e.hmmvp_dir = '/home/users/yudongs/FDRA2C/fdra2c/work/fdra2c/external/hmmvp';
     
     e.dec='v2';
@@ -31,6 +31,10 @@ function s = simul_setup (run_cmd)
     e=env();
     addpaths();
 
+    % Yudong: 2026-06-12
+    % load geometry and Green's functions.
+    load(fullfile(e.scratch_dir, 'wl_rough1_walnut.mat'));
+
     cc = @(x)(x(2:end)+x(1:end-1))/2;
  
     % Set defaults
@@ -40,10 +44,6 @@ function s = simul_setup (run_cmd)
     % just write the parameters
 
     % flags 
-    o.fault_2_5D = 0;
-    % Yudong 2026-06-04
-    % using 3D Okada Green's functions 
-    o.fault_3D = 1;
     o.evolution = 'aging'; % 'aging' or 'slip'
     o.use_Gn = 1; %include greens functions for normal stresses
     if o.use_Gn ==1
@@ -60,22 +60,14 @@ function s = simul_setup (run_cmd)
     if (o.ncomp==2) % if consider the slip in the secondary direction
         o.vzero = 1e-20; %slip direction in secondary direction
     end 
-    o.resolve_loading_3D = 1;   % 1: resolve loading in 3D, 0: resolve loading in 2D
-    % Yudong: 2025-07-14, for burried fault, having a elliptical shape of slip
-    o.vertical_integral = 0;   % 1: vertical integral, 0: not vertical integral
-
+    
     % elastic parameters in the bulk
-    % Yudong: 2026-06-16 to match woodland
-    % o.mu = 3.0e10; % Shear modulus [Pa]
-    o.mu = 3.3e10;
-    % o.nu = 0.25; % Poisson ratio    
-    % Yudong: 2026-06-16, to match the woodland
-    o.nu = 0.225; 
+    o.mu = 3.0e10; % Shear modulus [Pa]
+    o.nu = 0.25; % Poisson ratio    
     o.vs = 3.7e3; % S wave velocity [m/s]
     o.eta = 0.5*o.mu/o.vs;  % radiation damping parameter
-    % Gprime = o.mu/(1 - o.nu);   % G/(1-nu) for plane strain; G for anti-plane
-    Gprime = 4e10;
-
+    Gprime = o.mu/(1 - o.nu);   % G/(1-nu) for plane strain; G for anti-plane
+    
     % friction parameters on the interface
     a = 0.011;
     b = 0.02;
@@ -100,140 +92,17 @@ function s = simul_setup (run_cmd)
     dx = min(Lc, Lamb) / Lc_over_x; % resolution (m)
 
     % coordinates
-    % Use cell to collect fault coordinates (boundaries of elements)
-    % TODO: to save this in a file
-    % Yudong: 2025-07-01
-    % (x, y, -dep) or (x, y, z)is the coordinate of the fault lower edge's midpoint, 
-    % strike is the strike angle from north to east,
-    % dip_angle is the rotating angle from west to up (if strike is 0).
-    
-    % Yudong: 2025-07-02
-    % two perpendicular faults
-    % o.xs{1} = 0:dx:min_fault_length;
-    % o.ys{1} = zeros(1, length(o.xs{1}));
-    % o.ys{2} = -min_fault_length*0.5:dx:min_fault_length*0.5;
-    % o.xs{2} = ones(1, length(o.ys{2}))*min_fault_length*1.1;
-
-    % Yudong: 2025-07-02
-    % two perpendicular symmetric faults
-    % o.xs{1} = 0:dx:min_fault_length;
-    % o.ys{1} = zeros(1, length(o.xs{1}));
-    % o.ys{2} = 0:dx:min_fault_length+min_fault_length*0.1;
-    % o.xs{2} = ones(1, length(o.ys{2}))*min_fault_length*1.1;
-
-    % Yudong: 2025-07-14, 3 faults
-    % o.ys{3} = min_fault_length*0.7:dx:min_fault_length*1.0;
-    % o.xs{3} = ones(1, length(o.ys{3}))*min_fault_length*1.3;
-
-    % Yudong: 2026-06-04, 3D rough fault in x direction
-    % rough geometry function
-    Amy = 1e-3; wn1 = 1; wn2 = 2;
-    fun_rough = @(x) Amy * (cos(2*pi*wn1.*x) - cos(2*pi*wn2.*x));
-    n_dep = floor(min_fault_length/dx); % number of rows
-    o.xs = {};  % Initialize cell array
-    o.ys = {};  % Initialize cell array
-    for i = 1:n_dep
-        o.xs{i} = 0:dx:min_fault_length;
-        o.ys{i} = fun_rough(o.xs{i});
-    end 
-
-    o.nseg = length(o.xs);
-    % to consider the multisegment faults
-    if o.nseg > 1
-        o.multiseg = 1;
-    else
-        o.multiseg = 0;
-    end
-    % Yudong: 2025-07-01
-    % rotation for testing: dip
-    rotate_test = 0; % default: 0, set to 1 to test the rotation
-    if rotate_test == 1
-        dip_adjust = 0;   % default: 0
-        o.ys{2} = o.ys{2} / cosd(dip_adjust);
-        % rotation for testing: strike
-        strike_angle = 0;   % default: 0
-        displacement = min_fault_length * [0,0];   % default: [0,0]
-        if o.multiseg == 1
-            for i = 1:o.nseg
-                x_tmp = o.xs{i};
-                y_tmp = o.ys{i};
-                o.xs{i} = x_tmp * cosd(-strike_angle)-y_tmp * sind(-strike_angle);
-                o.ys{i} = x_tmp * sind(-strike_angle)+y_tmp * cosd(-strike_angle);
-                o.xs{i} = o.xs{i} + displacement(1) ;
-                o.ys{i} = o.ys{i} + displacement(2) ;
-            end
-        end
-    end % if rotate_test
-
-    % o.dip_angle = [90, 90];  % default: vertical fault
-    % Yudong: 2025-07-14, testing: dip angle for second fault
-    % o.dip_angle = [90, 120, 120] + dip_adjust; 
-    % o.dep = min_fault_length*[0.3, 0.3, 0.25]; % depth of the fault [m],A large number
-    % o.wid = min_fault_length*[0.2, 0.2, 0.15]; % width of the fault [m],A large number
-    % Yudong: 2025-07-02
-    % left or right lateral: 1 or -1
-    % o.left_lateral = [1, -1, -1];
-
-    % Yudong 2026-06-04, 3D
-    large_dep = min_fault_length*100;
-    o.dip_angle = 90 * ones(1, o.nseg); 
-    o.dep = linspace(dx, o.nseg*dx, o.nseg) + large_dep;
-    o.wid = dx * ones(1, o.nseg);
-    o.left_lateral = ones(1, o.nseg);
+    o.topo = wl.topo;
+    o.vtx = wl.vtx;
 
     % calculate the center coordinates 
-    if o.multiseg == 0
-        % Extract coordinate arrays
-        o.xc = cc(o.xs);
-        try o.yc = cc(o.ys);  %rough fault
-        catch o.yc = 0*o.xc; %smooth fault (yc not defined)
-        end
-    else
-        o.xc = []; 
-        o.yc = [];
-        o.zc = [];
-        for i = 1:o.nseg
-            o.xc = [o.xc, cc(o.xs{i})];
-            o.yc = [o.yc, cc(o.ys{i})];
-            % initialize the zc to 0
-            o.zc = [o.zc, 0*cc(o.xs{i})];
-        end
-        % Yudong: 2025-06-30
-        if o.fault_2_5D == 1 || o.fault_3D == 1
-            o.zc = [];
-            for i = 1:o.nseg
-                o.zc = [o.zc, ones(1, length(cc(o.xs{i}))) * (-o.dep(i))];  
-            end 
-            o.dip = [];
-            for i = 1:o.nseg
-                o.dip = [o.dip, ones(1, length(cc(o.xs{i}))) * o.dip_angle(i)];
-            end
-            o.strike = [];
-            for i = 1:o.nseg
-                o.strike = [o.strike, 90 - atan2d(diff(o.ys{i}), diff(o.xs{i}))];
-            end
-            o.depth = [];
-            o.width = [];
-            for i = 1:o.nseg
-                    % depth is a large number [m]
-                    % width is a large number [m]
-                    o.depth = [o.depth, ones(1, length(cc(o.xs{i}))) * o.dep(i)];  
-                    o.width = [o.width, ones(1, length(cc(o.xs{i}))) * o.wid(i)];  
-            end
-            o.len = [];
-            for i = 1:o.nseg
-                    o.len = [o.len, sqrt(diff(o.xs{i}).^2 + diff(o.ys{i}).^2)];
-            end
-            o.sense = [];
-            for i = 1:o.nseg
-                    o.sense = [o.sense, ones(1, length(cc(o.xs{i}))) * o.left_lateral(i)];
-            end
-        end % if fault_2_5D or fault_3D
-    end
- 
-    
-     
-    o.nelem = numel(o.xc);
+    o.nelem = size(o.topo, 1);
+    o.xc = (o.vtx(o.topo(:,1)+1,1) + o.vtx(o.topo(:,2)+1,1) + o.vtx(o.topo(:,3)+1,1))/3;
+    o.yc = (o.vtx(o.topo(:,1)+1,2) + o.vtx(o.topo(:,2)+1,2) + o.vtx(o.topo(:,3)+1,2))/3;
+    o.zc = (o.vtx(o.topo(:,1)+1,3) + o.vtx(o.topo(:,2)+1,3) + o.vtx(o.topo(:,3)+1,3))/3;
+    o.xc = o.xc';
+    o.yc = o.yc';
+    o.zc = o.zc';
     one = ones(size(o.xc));
 
     % filling in the parameters for elements
@@ -244,96 +113,11 @@ function s = simul_setup (run_cmd)
     o.s_normal = sigma*one;
     
     o.kes=0;  %minimum normal stress (for rough fault)
-
-    % Yudong: 2026-06-04
-    if o.fault_3D == 0
-        if o.fault_2_5D == 0
-            % Green's functions
-            if (o.multiseg)
-                % Loop through the faults and find cell centers.
-                els=[]; elr=[];
-                for n=1:o.nseg
-                    xb=o.xs{n};
-                    yb=o.ys{n};
-                    % Sources:
-                    this_els = [[cc(xb(:))], [cc(yb(:))], [0.5*diff(xb(:))], [0.5*diff(yb(:))]]';
-                    els = [els this_els];
-                    % Receivers:
-                    this_elr = [cc(xb(:)), cc(yb(:)), 0.5*diff(xb(:)), 0.5*diff(yb(:))]';
-                    elr = [elr this_elr];
-                end
-                % So that later c.x = xb is assigned correctly.
-                els = [els [0 0 1 1]']; %for backwards compatibility; last element not used but could be set up as a dislocation BC.
-            else
-                xb = o.xs;
-                yb = o.ys;
-                %Sources:
-                els = [[cc(xb(:)); xb(end)], [cc(yb(:)); 0], [0.5*diff(xb(:)); 1], [0.5*diff(yb(:)); 0]]';
-                % Receivers:
-                elr = [cc(xb(:)), cc(yb(:)), 0.5*diff(xb(:)), 0.5*diff(yb(:))]';
-            end
-            % Green's function is calculated using c++ routine fsps_flat_mvp_gf in c2dmex
-            % Yudong: 2025-06-26 TODO: add the function c2dmex 
-            [sgf, tgf]= c2dmex(['fsps_flat_mvp_gf'], els, elr, []);
-            % Note: using left-lateral=positive convention.
-            Gn= Gprime*sgf;
-            Gs= Gprime*tgf;
-        elseif o.fault_2_5D == 1
-            % 2.5D case Green's functions
-            % Yudong: 2025-06-30
-            if (o.multiseg)
-                els=[]; % sources (x, y, z, length, width, dip, strike), (x,y,z) is the coordinate of the fault lower edge's midpoint
-                elr=[]; % receivers (x, y, z, dip, strike), it means (east, north, up), z is negative, center of the fault patch
-                els = [o.xc; o.yc; -o.depth; o.len; o.width; o.dip; o.strike; o.sense];
-                % boundary element
-                % not used (Yudong: 2025-07-01)
-                els_b = [0, 0, -o.dep(1), min_fault_length, o.wid(1), o.dip_angle(1), 90, -1]';
-                elr = [o.xc-o.width/2.*cosd(o.dip).*cosd(o.strike); ...
-                o.yc+o.width/2.*cosd(o.dip).*sind(o.strike); ...
-                -o.depth+o.width/2.*sind(o.dip); o.dip; o.strike; o.sense];
-                % Yudong: 2025-07-14, vertical integral
-                if o.vertical_integral == 1
-                    [Gs Gn] = GF_disloc3d_ss_vertical_integral(els,elr,o.mu,o.nu);
-                else
-                    [Gs Gn] = GF_disloc3d_ss(els,elr,o.mu,o.nu);
-                end
-                % boundary element
-                [Gs_b Gn_b] = GF_disloc3d_ss(els_b,elr,o.mu,o.nu);
-                Gs = [Gs, Gs_b];
-                Gn = [Gn, Gn_b];
-                Gn = -Gn;
-            else
-                error('2.5D case with single fault is not implemented yet');
-            end
-        end % if o.fault_2_5D 
-    elseif o.fault_3D == 1
-        % 3D case 
-        % Yudong: 2026-06-04 
-            if (o.multiseg)
-                els=[]; % sources (x, y, z, length, width, dip, strike), (x,y,z) is the coordinate of the fault lower edge's midpoint
-                elr=[]; % receivers (x, y, z, dip, strike), it means (east, north, up), z is negative, center of the fault patch
-                els = [o.xc; o.yc; -o.depth; o.len; o.width; o.dip; o.strike; o.sense];
-                % boundary element, not used 
-                els_b = [0, 0, -o.dep(1), min_fault_length, o.wid(1), o.dip_angle(1), 90, -1]';
-                elr = [o.xc-o.width/2.*cosd(o.dip).*cosd(o.strike); ...
-                o.yc+o.width/2.*cosd(o.dip).*sind(o.strike); ...
-                -o.depth+o.width/2.*sind(o.dip); o.dip; o.strike; o.sense];
-                [Gs Gn] = GF_disloc3d_ss(els,elr,o.mu,o.nu);
-                % boundary element
-                [Gs_b Gn_b] = GF_disloc3d_ss(els_b,elr,o.mu,o.nu);
-                Gs = [Gs, Gs_b];
-                Gn = [Gn, Gn_b];
-                Gn = -Gn;
-            else
-                error('3D case with single row is not right');
-            end
-    end % if o.fault_3D
-
-    s.hm.cc{1,1} = Gs;
-
-    % Yudong May 15 2025
-    % use negative
-    if (o.use_Gn) s.hm.cc{1,2} = -Gn; end
+   
+   % Green's functions         
+   % temporarily use o.mu to fix. TODO: change the matrix
+    s.hm.cc{1,1} = o.mu*wl.Gs;
+    if (o.use_Gn) s.hm.cc{1,2} = -o.mu*wl.Gn; end   % use negative 
 
     % calculate H-matrices from Greens functions matrices
     s.hm.cc{1,1} = gf2hm(s.hm.cc{1,1}, [o.hm_filename '_comp11.hm'], ...
@@ -375,26 +159,14 @@ function s = simul_setup (run_cmd)
             o.uniload = 1;
             o.IncludeNormal = true;
             % add variable loading rate for shear and normal stress (taudot and sigmadot)
-            cstress.multiseg = o.multiseg;
-            cstress.nseg = o.nseg;
             cstress.Sij = Sij;
-            cstress.xs=o.xs;
-            cstress.ys=o.ys;
-            cstress.sense=o.sense;
+            cstress.topo=o.topo;
+            cstress.vtx=o.vtx;
 
-            % Yudong: 2025-07-14, 3D loading 
-            if o.resolve_loading_3D == 1 && (o.fault_2_5D == 1 || o.fault_3D == 1)
-                if o.multiseg == 1
-                    cstress.elr = elr;
-                    [tau,sig]=resolve_3D(cstress);
-                else
-                    error('3D loading is not implemented for single fault');
-                end
-            else
-                [tau,sig]=resolve_sigmaD(cstress);
-            end
+            [tau,sig]=resolve_3D_tri(cstress);
+               
             o.taudot = tau';
-            o.sigmadot = -sig';
+            o.sigmadot = -sig'; % use negative 
         case 'bc'
             % Yudong Apr 16 2025
             o.uniload = 0;
@@ -429,7 +201,7 @@ function s = simul_setup (run_cmd)
        
         % Yudong May 14 2025
         if o.use_Gn
-           o.hm_bc_n = -Gn(:,end); % Gload_n
+           o.hm_bc_n = -Gn(:,end); % Gload_n, use negative
         end
    
     end
@@ -465,7 +237,7 @@ function s = simul_setup (run_cmd)
     end
 
     % write out readme file
-    e.description=['2D_multifault'];
+    e.description=['3D_triangular_fault'];
     fout = fopen([e.scratch_dir '/readme'],'a');
     fprintf(fout, '%s\n', e.description);  
     fclose(fout);
@@ -561,6 +333,43 @@ function [tau, sig] = resolve_3D(c)
         sig(i) = ns;
     end
 end % function resolve_3D
+
+% Yudong:2026-06-12, calculate the resolved stressing for triangular elements.
+% check the geometry
+function [tau, sig] = resolve_3D_tri(c) 
+    tau = zeros(size(c.topo,1), 1);  
+    sig = zeros(size(c.topo,1), 1);
+    
+    for i = 1:size(c.topo,1)  
+        % get the coordinates of the three vertices of the triangle
+        v1 = c.vtx(c.topo(i,1)+1, :);  
+        v2 = c.vtx(c.topo(i,2)+1, :);
+        v3 = c.vtx(c.topo(i,3)+1, :);
+        
+        % calculate the edge vectors of the triangle
+        edge1 = v2 - v1;  
+        edge2 = v3 - v1;  
+        
+        % calculate the normal vector of the triangle
+        % normal = cross(edge1, edge2);
+        normal = cross(edge2, edge1);  
+        normal = normal / norm(normal);  
+        
+        
+        vert = [0, 0, 1];  % veritcal vector
+        
+        % along strike direction.
+        % along = cross(normal,vert);
+        along = cross(vert,normal);
+        along = along / norm(along); 
+        
+        % stress
+        % [ss ns] = Stresses(c.Sij.matrix6, along', -normal');
+        [ss ns] = Stresses(c.Sij.matrix6, along', normal');
+        tau(i) = ss;
+        sig(i) = ns;
+    end
+end
 
 % convert Green's function matrix to structure used by hmmvp
 function c = gf2hm(G, fname, xc, yc, zc, run, mode);
